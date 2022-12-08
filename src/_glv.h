@@ -85,6 +85,7 @@ struct View{
 
     ViewProc view_proc;
     void *view_data;
+    unsigned int view_data_size;
 
     ViewManage view_manage;
     void *user_context;

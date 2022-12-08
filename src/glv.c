@@ -12,6 +12,7 @@ static void draw_views_recursive(View *view);
 static void handle_default_doc(ViewMsg msg, GlvMsgDocs *docs);
 static void unfocus_all_excepting(View *view, View *exception);
 static bool handle_private_message(View *view, ViewMsg message, const void *in);
+static unsigned int get_view_data_size(View *view);
 
 void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 static void __draw_views_recursive(View *view, SDL_Rect parent);
@@ -53,6 +54,10 @@ void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc,
     
     __init_texture_1x1(result);
     __init_framebuffer(result);
+
+    result->view_data_size = get_view_data_size(result);
+    if(result->view_data_size == 0) result->view_data = NULL;
+    else result->view_data = malloc(result->view_data_size);
 
     glv_call_event(result, VM_CREATE, NULL, NULL);
     glv_call_manage(result, VM_CREATE, NULL);
@@ -121,6 +126,10 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     parent->childs_cnt++;
     parent->childs = realloc(parent->childs, parent->childs_cnt * sizeof(View*));
     parent->childs[parent->childs_cnt - 1] = result;
+
+    result->view_data_size = get_view_data_size(result);
+    if(result->view_data_size == 0) result->view_data = NULL;
+    else result->view_data = malloc(result->view_data_size);
 
     glv_push_event(result, VM_CREATE, NULL, 0);
     glv_push_event(parent, VM_CHILD_CREATE, &result, sizeof(View*));
@@ -202,6 +211,17 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
 
     glv_delete(mgr.root_view);
     return delete_mgr(&mgr);
+}
+
+void *get_view_data(View *view, unsigned int offset){
+    if(view->view_data_size <= offset){
+        glv_log_err(glv_get_mgr(view), "get_view_data with offset out of data range");
+        glv_quit(glv_get_mgr(view));
+        return NULL;
+    }
+    else{
+        return view->view_data + offset;
+    }
 }
 
 void glv_push_event(View *view, ViewMsg message, const void *args, uint32_t args_size){
@@ -582,6 +602,12 @@ static bool handle_private_message(View *view, ViewMsg message, const void *in){
         return true;
     default: return false;
     }
+}
+
+static unsigned int get_view_data_size(View *view){
+    unsigned int data_size;
+    glv_call_event(view, VM_GET_VIEW_DATA_SIZE, NULL, &data_size);
+    return data_size;
 }
 
 static void __enum_set_secondary_focus(View *view, void *unused){

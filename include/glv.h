@@ -45,6 +45,7 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
 void glv_delete(View *view);
 void glv_proc_default(View *view, ViewMsg msg, const void *in, void *out);
 int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view));
+void *get_view_data(View *view, unsigned int offset);
 
 //handles in message queue
 //copies args 
