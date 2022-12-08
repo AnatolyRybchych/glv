@@ -3,7 +3,6 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
-#include <SDL2/SDL_opengl.h>
 #include <stdbool.h>
 #include <mvp.h>
 
@@ -34,7 +33,7 @@ GlvMgr *glv_get_mgr(View *view);
     void glv_log_err(GlvMgr *mgr, const char *err);
     SDL_Window *glv_get_window(GlvMgr *mgr);
 
-    //SDL_USEREVENT is taken
+    //SDL_USEREVENT some events are reserved by SDL_RegisterEvents() 
     void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, const SDL_Event *event, void *root_context));
 
 void glv_enum_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);

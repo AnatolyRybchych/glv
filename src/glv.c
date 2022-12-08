@@ -1,30 +1,33 @@
 #include "_glv.h"
 
-static bool init_sdl(GlvMgr *mgr);
-static bool init_window(GlvMgr *mgr);
-static bool init_gl_ctx(GlvMgr *mgr);
+
 static void create_mgr(GlvMgr *mgr);
 static int delete_mgr(GlvMgr *mgr);
 static void handle_events(GlvMgr *mgr, const SDL_Event *ev);
-static void handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev);
 static void apply_events(GlvMgr *mgr);
 static void draw_views_recursive(View *view);
-static void handle_default_doc(ViewMsg msg, GlvMsgDocs *docs);
 static void unfocus_all_excepting(View *view, View *exception);
 static bool handle_private_message(View *view, ViewMsg message, const void *in);
 static unsigned int get_view_data_size(View *view);
 
-void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
-static void __draw_views_recursive(View *view, SDL_Rect parent);
-static void __init_texture_1x1(View *view);
-static void __init_framebuffer(View *view);
-static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context);
 static void __init_draw_texture_ifninit(GlvMgr *mgr);
 static void __init_draw_texture_program(GlvMgr *mgr);
 static void __init_draw_texture_vbo(GlvMgr *mgr);
 static void __init_draw_texture_coord_bo(GlvMgr *mgr);
 static void __init_draw_texture_var_locations(GlvMgr *mgr);
 static void __free_draw_texture(GlvMgr *mgr);
+
+static bool __init_sdl(GlvMgr *mgr);
+static bool __init_window(GlvMgr *mgr);
+static bool __init_gl_ctx(GlvMgr *mgr);
+
+static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
+static void __init_texture_1x1(View *view);
+static void __init_framebuffer(View *view);
+static void __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev);
+static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs);
+static void __draw_views_recursive(View *view, SDL_Rect parent);
+static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context);
 static void __set_view_visibility(View *view, bool is_visible);
 static void __set_is_mouse_over(View *view, bool is_mouse_over);
 
@@ -41,30 +44,6 @@ static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev);
 static void __handle_key(View *root, ViewMsg msg, const SDL_KeyboardEvent *ev);
 
 static Uint32 user_msg_first;
-
-void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
-    View *result = malloc(sizeof(View));
-    SDL_zerop(result);
-    mgr->root_view = result;
-
-    result->mgr = mgr;
-    result->view_proc = view_proc;
-    result->user_context = user_context;
-    result->is_visible = true;
-
-    if(manage_proc == NULL) result->view_manage = __manage_default;
-    else result->view_manage = manage_proc;
-    
-    __init_texture_1x1(result);
-    __init_framebuffer(result);
-
-    result->view_data_size = get_view_data_size(result);
-    if(result->view_data_size == 0) result->view_data = NULL;
-    else result->view_data = malloc(result->view_data_size);
-
-    glv_call_event(result, VM_CREATE, NULL, NULL);
-    glv_call_manage(result, VM_CREATE, NULL);
-}
 
 void glv_enum_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data){
     View **curr = view->childs;
@@ -173,7 +152,7 @@ void glv_proc_default(View *view, ViewMsg msg, void *in, void *out){
     view = view;//unused
     switch (msg){
     case VM_GET_DOCS:
-        handle_default_doc(*(ViewMsg*)in, out);
+        __handle_default_doc(*(ViewMsg*)in, out);
         break;
     }
 }
@@ -183,9 +162,9 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
     create_mgr(&mgr);
     mgr.is_running = true;
 
-    if(!init_sdl(&mgr)
-    || !init_window(&mgr)
-    || !init_gl_ctx(&mgr)){
+    if(!__init_sdl(&mgr)
+    || !__init_window(&mgr)
+    || !__init_gl_ctx(&mgr)){
         glv_log_err(&mgr, NULL);
         return EXIT_FAILURE;
     }
@@ -444,46 +423,6 @@ void glv_hide(View *view){
     __set_is_mouse_over(view, false);
 }
 
-static bool init_sdl(GlvMgr *mgr){
-    if(SDL_Init(SDL_INIT_VIDEO) < 0){
-        glv_log_err(mgr, SDL_GetError());
-        user_msg_first = SDL_RegisterEvents(VM_USER_LAST + 1);
-        return false;
-    }
-    else{
-        return true;
-    }
-}
-
-static bool init_window(GlvMgr *mgr){
-    mgr->window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, 
-        SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL);
-    if(mgr->window == NULL){
-        glv_log_err(mgr, "cannot create SDL2_Window");
-        return false;
-    }
-    else{
-        mgr->wind_id = SDL_GetWindowID(mgr->window);
-    }
-    return true;
-}
-
-static bool init_gl_ctx(GlvMgr *mgr){
-    SDL_assert(mgr->window != NULL);
-    mgr->gl_rc = SDL_GL_CreateContext(mgr->window);
-    if(mgr->gl_rc == NULL){
-        glv_log_err(mgr, "cannot create SDL_GlContext");
-        return false;
-    }
-    SDL_GL_MakeCurrent(mgr->window, mgr->gl_rc);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    return true;
-}
-
 static void create_mgr(GlvMgr *mgr){
     SDL_zerop(mgr);
     mgr->logger_proc = log_printf;
@@ -503,7 +442,7 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
     mgr->on_sdl_event(mgr->root_view, ev, mgr->root_view->user_context);
     switch (ev->type){
         case SDL_WINDOWEVENT:
-            handle_winevents(mgr, &ev->window);
+            __handle_winevents(mgr, &ev->window);
         break;
         case SDL_QUIT:{
             mgr->is_running = false;
@@ -553,53 +492,6 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
     }
 }
 
-static void handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
-    if(ev->windowID != mgr->wind_id) return;
-    if(mgr->root_view == NULL){
-        glv_log_err(mgr, "root view is NULL");
-        return;
-    }
-
-    switch (ev->event){
-    case SDL_WINDOWEVENT_EXPOSED:
-        mgr->required_redraw = true;
-        break;
-    case SDL_WINDOWEVENT_RESIZED:{
-        SDL_Point new_size = {
-            .x = mgr->root_view->w = ev->data1,
-            .y = mgr->root_view->h = ev->data2,
-        };
-
-        glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
-    }break;
-    case SDL_WINDOWEVENT_SHOWN:{
-        SDL_Point new_pos;
-        SDL_Point new_size;
-
-        mgr->root_view->is_visible = true;
-        glv_push_event(mgr->root_view, VM_SHOW, NULL, 0);
-
-        SDL_GetWindowSize(mgr->window, &new_size.x, &new_size.y);
-        SDL_GetWindowPosition(mgr->window, &new_pos.x, &new_pos.y);
-
-        glv_push_event(mgr->root_view, VM_MOVE, &new_size, sizeof(new_pos));
-        glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
-    }break;
-    case SDL_WINDOWEVENT_HIDDEN:{
-        mgr->root_view->is_visible = false;
-        glv_push_event(mgr->root_view, VM_HIDE, NULL, 0);
-    }break;
-    case SDL_WINDOWEVENT_FOCUS_GAINED:{
-        mgr->root_view->is_focused = true;
-        glv_push_event(mgr->root_view, VM_FOCUS, NULL, 0);
-    }break;
-    case SDL_WINDOWEVENT_FOCUS_LOST:{
-        mgr->root_view->is_focused = false;
-        glv_push_event(mgr->root_view, VM_UNFOCUS, NULL, 0);
-    }break;
-    }
-}
-
 static void apply_events(GlvMgr *mgr){
     if(should_redraw(mgr)){
         if(mgr->root_view == NULL){
@@ -634,36 +526,7 @@ static void draw_views_recursive(View *view){
         SDL_STRINGIFY_ARG(MESSAGE),\
         INPUT, OUTPUT, DESCRIPTION); break;
 
-static void handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
-    switch (msg){
-        __DOC_CASE(VM_NULL, "NULL", "NULL", "doesnt handles");
-        __DOC_CASE(VM_VIEW_FREE__, "NULL", "NULL", "handles only by view manager");
-        __DOC_CASE(VM_CREATE, "NULL", "NULL", "calls once on create");
-        __DOC_CASE(VM_DELETE, "NULL", "NULL", "calls once on delete");
-        __DOC_CASE(VM_RESIZE, "const SDL_Point *new_size", "NULL", "calls when view is resized");
-        __DOC_CASE(VM_MOVE, "const SDL_Point *new_pos", "NULL", "calls when view is moved");
-        __DOC_CASE(VM_MOUSE_DOWN, "const GlvMouseDown *args", "NULL", "calls when is mouse pressed");
-        __DOC_CASE(VM_MOUSE_UP, "const GlvMouseUp *args", "NULL", "calls when is mouse released");
-        __DOC_CASE(VM_MOUSE_MOVE, "const GlvMouseMove *args", "NULL", "calls when is mouse moved");
-        __DOC_CASE(VM_DRAW, "NULL", "NULL", "calls when glv_draw(view) is called");
-        __DOC_CASE(VM_SHOW, "NULL", "NULL", "calls on show");
-        __DOC_CASE(VM_HIDE, "NULL", "NULL", "calls on hide");
-        __DOC_CASE(VM_FOCUS, "NULL", "NULL", "calls on focus");
-        __DOC_CASE(VM_UNFOCUS, "NULL", "NULL", "calls on focus lost");
-        __DOC_CASE(VM_KEY_DOWN, "const GlvKeyDown *args", "NULL", "calls on key down and view is focused");
-        __DOC_CASE(VM_KEY_UP, "const GlvKeyUp *args", "NULL", "calls on key up and view is focused");
-        __DOC_CASE(VM_CHILD_RESIZE, "View* view", "NULL", "calls on child resize");
-        __DOC_CASE(VM_CHILD_MOVE, "View* view", "NULL", "calls on child move");
-        __DOC_CASE(VM_CHILD_CREATE, "View* view", "NULL", "calls on child create");
-        __DOC_CASE(VM_CHILD_DELETE, "View* view", "NULL", "calls on child delete");
-        __DOC_CASE(VM_MOUSE_HOVER, "NULL", "NULL", "calls on mouse hover");
-        __DOC_CASE(VM_MOUSE_LEAVE, "NULL", "NULL", "calls on mouse leave");
-        __DOC_CASE(VM_TEXT, "const char *", "NULL", "calls on text input if glv_is_focused(view)");
-        __DOC_CASE(VM_TEXT_EDITING, "const GlvTextEditing *args", "NULL", "redirect of SDL_TEXTEDITING, requires SDL_StartTextInput");
-        __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs");
-        __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "unsigned int *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
-    }
-}
+
 
 static void unfocus_all_excepting(View *view, View *exception){
     if(view->is_focused == false) return;
@@ -691,74 +554,6 @@ static unsigned int get_view_data_size(View *view){
     unsigned int data_size;
     glv_call_event(view, VM_GET_VIEW_DATA_SIZE, NULL, &data_size);
     return data_size;
-}
-
-static void __enum_set_secondary_focus(View *view, void *unused){
-    unused = unused;//unused
-    glv_set_secondary_focus(view);
-}
-
-static void __draw_views_recursive(View *view, SDL_Rect parent){
-    if(view->is_visible == false) return;
-
-    SDL_Rect dst;
-    SDL_Rect src;
-
-    int availabale_w = parent.w - view->x;
-    int availabale_h = parent.h - view->y;
-
-    if(availabale_w <= 0 || availabale_h <= 0) return;
-
-    dst.x = parent.x + view->x;
-    dst.y = parent.y + view->y;
-    dst.w = SDL_min(availabale_w, view->w);
-    dst.h = SDL_min(availabale_h, view->h);
-
-    if(view->is_drawable){
-        src.x = 0;
-        src.y = 0;
-        src.w = view->w;
-        src.h = view->h;
-
-        glv_draw_texture_absolute(view->mgr, view->texture, &src, &dst);
-    }
-
-    View **curr = view->childs;
-    View **end = curr + view->childs_cnt;
-
-    while (curr !=end){
-        __draw_views_recursive(*curr, dst);
-        curr++;
-    }
-}
-
-
-static void __init_texture_1x1(View *view){
-    glGenTextures(1, &view->texture);
-    glBindTexture(GL_TEXTURE_2D, view->texture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-static void __init_framebuffer(View *view){
-    glGenFramebuffers(1, &view->framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
-    
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, view->texture, 0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context){
-    view = view;//unused
-    msg = msg;//unused
-    event_args = event_args;//unused
-    user_context = user_context;//unused
 }
 
 static void __init_draw_texture_ifninit(GlvMgr *mgr){
@@ -832,7 +627,6 @@ static void __init_draw_texture_coord_bo(GlvMgr *mgr){
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-
 static void __init_draw_texture_var_locations(GlvMgr *mgr){
     DrawTextureProgram *p = &mgr->draw_texture_program;
 
@@ -854,6 +648,256 @@ static void __free_draw_texture(GlvMgr *mgr){
     p->prog = 0;
     p->vbo = 0;
     p->tex_coords_p = 0;
+}
+
+static bool __init_sdl(GlvMgr *mgr){
+    if(SDL_Init(SDL_INIT_VIDEO) < 0){
+        glv_log_err(mgr, SDL_GetError());
+        user_msg_first = SDL_RegisterEvents(VM_USER_LAST + 1);
+        return false;
+    }
+    else{
+        return true;
+    }
+}
+
+static bool __init_window(GlvMgr *mgr){
+    mgr->window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, 
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL);
+    if(mgr->window == NULL){
+        glv_log_err(mgr, "cannot create SDL2_Window");
+        return false;
+    }
+    else{
+        mgr->wind_id = SDL_GetWindowID(mgr->window);
+    }
+    return true;
+}
+
+static bool __init_gl_ctx(GlvMgr *mgr){
+    SDL_assert(mgr->window != NULL);
+    mgr->gl_rc = SDL_GL_CreateContext(mgr->window);
+    if(mgr->gl_rc == NULL){
+        glv_log_err(mgr, "cannot create SDL_GlContext");
+        return false;
+    }
+    SDL_GL_MakeCurrent(mgr->window, mgr->gl_rc);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
+    View *result = malloc(sizeof(View));
+    SDL_zerop(result);
+    mgr->root_view = result;
+
+    result->mgr = mgr;
+    result->view_proc = view_proc;
+    result->user_context = user_context;
+    result->is_visible = true;
+
+    if(manage_proc == NULL) result->view_manage = __manage_default;
+    else result->view_manage = manage_proc;
+    
+    __init_texture_1x1(result);
+    __init_framebuffer(result);
+
+    result->view_data_size = get_view_data_size(result);
+    if(result->view_data_size == 0) result->view_data = NULL;
+    else result->view_data = malloc(result->view_data_size);
+
+    glv_call_event(result, VM_CREATE, NULL, NULL);
+    glv_call_manage(result, VM_CREATE, NULL);
+}
+
+static void __init_texture_1x1(View *view){
+    glGenTextures(1, &view->texture);
+    glBindTexture(GL_TEXTURE_2D, view->texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+static void __init_framebuffer(View *view){
+    glGenFramebuffers(1, &view->framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
+    
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, view->texture, 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+
+static void __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
+    if(ev->windowID != mgr->wind_id) return;
+    if(mgr->root_view == NULL){
+        glv_log_err(mgr, "root view is NULL");
+        return;
+    }
+
+    switch (ev->event){
+    case SDL_WINDOWEVENT_EXPOSED:
+        mgr->required_redraw = true;
+        break;
+    case SDL_WINDOWEVENT_RESIZED:{
+        SDL_Point new_size = {
+            .x = mgr->root_view->w = ev->data1,
+            .y = mgr->root_view->h = ev->data2,
+        };
+
+        glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
+    }break;
+    case SDL_WINDOWEVENT_SHOWN:{
+        SDL_Point new_pos;
+        SDL_Point new_size;
+
+        mgr->root_view->is_visible = true;
+        glv_push_event(mgr->root_view, VM_SHOW, NULL, 0);
+
+        SDL_GetWindowSize(mgr->window, &new_size.x, &new_size.y);
+        SDL_GetWindowPosition(mgr->window, &new_pos.x, &new_pos.y);
+
+        glv_push_event(mgr->root_view, VM_MOVE, &new_size, sizeof(new_pos));
+        glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
+    }break;
+    case SDL_WINDOWEVENT_HIDDEN:{
+        mgr->root_view->is_visible = false;
+        glv_push_event(mgr->root_view, VM_HIDE, NULL, 0);
+    }break;
+    case SDL_WINDOWEVENT_FOCUS_GAINED:{
+        mgr->root_view->is_focused = true;
+        glv_push_event(mgr->root_view, VM_FOCUS, NULL, 0);
+    }break;
+    case SDL_WINDOWEVENT_FOCUS_LOST:{
+        mgr->root_view->is_focused = false;
+        glv_push_event(mgr->root_view, VM_UNFOCUS, NULL, 0);
+    }break;
+    }
+}
+
+static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
+    switch (msg){
+        __DOC_CASE(VM_NULL, "NULL", "NULL", "doesnt handles");
+        __DOC_CASE(VM_VIEW_FREE__, "NULL", "NULL", "handles only by view manager");
+        __DOC_CASE(VM_CREATE, "NULL", "NULL", "calls once on create");
+        __DOC_CASE(VM_DELETE, "NULL", "NULL", "calls once on delete");
+        __DOC_CASE(VM_RESIZE, "const SDL_Point *new_size", "NULL", "calls when view is resized");
+        __DOC_CASE(VM_MOVE, "const SDL_Point *new_pos", "NULL", "calls when view is moved");
+        __DOC_CASE(VM_MOUSE_DOWN, "const GlvMouseDown *args", "NULL", "calls when is mouse pressed");
+        __DOC_CASE(VM_MOUSE_UP, "const GlvMouseUp *args", "NULL", "calls when is mouse released");
+        __DOC_CASE(VM_MOUSE_MOVE, "const GlvMouseMove *args", "NULL", "calls when is mouse moved");
+        __DOC_CASE(VM_DRAW, "NULL", "NULL", "calls when glv_draw(view) is called");
+        __DOC_CASE(VM_SHOW, "NULL", "NULL", "calls on show");
+        __DOC_CASE(VM_HIDE, "NULL", "NULL", "calls on hide");
+        __DOC_CASE(VM_FOCUS, "NULL", "NULL", "calls on focus");
+        __DOC_CASE(VM_UNFOCUS, "NULL", "NULL", "calls on focus lost");
+        __DOC_CASE(VM_KEY_DOWN, "const GlvKeyDown *args", "NULL", "calls on key down and view is focused");
+        __DOC_CASE(VM_KEY_UP, "const GlvKeyUp *args", "NULL", "calls on key up and view is focused");
+        __DOC_CASE(VM_CHILD_RESIZE, "View* view", "NULL", "calls on child resize");
+        __DOC_CASE(VM_CHILD_MOVE, "View* view", "NULL", "calls on child move");
+        __DOC_CASE(VM_CHILD_CREATE, "View* view", "NULL", "calls on child create");
+        __DOC_CASE(VM_CHILD_DELETE, "View* view", "NULL", "calls on child delete");
+        __DOC_CASE(VM_MOUSE_HOVER, "NULL", "NULL", "calls on mouse hover");
+        __DOC_CASE(VM_MOUSE_LEAVE, "NULL", "NULL", "calls on mouse leave");
+        __DOC_CASE(VM_TEXT, "const char *", "NULL", "calls on text input if glv_is_focused(view)");
+        __DOC_CASE(VM_TEXT_EDITING, "const GlvTextEditing *args", "NULL", "redirect of SDL_TEXTEDITING, requires SDL_StartTextInput");
+        __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs");
+        __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "unsigned int *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
+    }
+}
+
+static void __draw_views_recursive(View *view, SDL_Rect parent){
+    if(view->is_visible == false) return;
+
+    SDL_Rect dst;
+    SDL_Rect src;
+
+    int availabale_w = parent.w - view->x;
+    int availabale_h = parent.h - view->y;
+
+    if(availabale_w <= 0 || availabale_h <= 0) return;
+
+    dst.x = parent.x + view->x;
+    dst.y = parent.y + view->y;
+    dst.w = SDL_min(availabale_w, view->w);
+    dst.h = SDL_min(availabale_h, view->h);
+
+    if(view->is_drawable){
+        src.x = 0;
+        src.y = 0;
+        src.w = view->w;
+        src.h = view->h;
+
+        glv_draw_texture_absolute(view->mgr, view->texture, &src, &dst);
+    }
+
+    View **curr = view->childs;
+    View **end = curr + view->childs_cnt;
+
+    while (curr !=end){
+        __draw_views_recursive(*curr, dst);
+        curr++;
+    }
+}
+
+
+
+
+static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context){
+    view = view;//unused
+    msg = msg;//unused
+    event_args = event_args;//unused
+    user_context = user_context;//unused
 }
 
 static void __set_view_visibility(View *view, bool is_visible){
@@ -939,6 +983,11 @@ static void __enum_call_mouse_move_event(View *child, void *args_ptr){
     
     args->x = curr.x;
     args->y = curr.y;
+}
+
+static void __enum_set_secondary_focus(View *view, void *unused){
+    unused = unused;//unused
+    glv_set_secondary_focus(view);
 }
 
 static void __enum_call_key_event(View *view, void *args_ptr){
