@@ -1,0 +1,8 @@
+#vscode files
+.vscode/*
+
+#object files
+obj/*
+
+#compiled executable
+run
