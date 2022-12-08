@@ -12,6 +12,7 @@ build:$(addprefix obj/, $(objects))
 	gcc $(CARGS) -o run $^ -lGL -lSDL2 -lm
 
 obj/%.o:src/%.c
+	@mkdir -p ./obj
 	gcc -c $(CARGS) -o $@ $^
 
 run: build
