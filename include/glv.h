@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <mvp.h>
 
+#define GLV_GRADIENT_STOPS_MAX 5
+
 typedef struct GlvMgr GlvMgr;
 typedef struct View View;
 
@@ -21,6 +23,19 @@ typedef struct GlvEventMouseMove GlvMouseMove;
 typedef struct GlvEventKey GlvKeyUp;
 typedef struct GlvEventKey GlvKeyDown;
 typedef struct GlvEventTextEditing GlvTextEditing;
+typedef struct GlvEventSetStyle GlvSetStyle;
+
+typedef Uint32 GlvColorStyleType;
+enum GlvColorStyleType{
+    GLV_COLORSTYLE_SOLID,
+    GLV_COLORSTYLE_LINEAR_GRADIENT,
+    GLV_COLORSTYLE_RADIAL_GRADIENT,
+};
+typedef SDL_Color (*GlvColorInterpolate)(SDL_Color from, SDL_Color to, float progress);
+typedef union GlvColorStyle GlvColorStyle;
+typedef struct GlvGradientStop GlvGradientStop;
+typedef struct GlvLinearGradient GlvLinearGradient;
+typedef struct GlvRadialGradient GlvRadialGradient;
 
 GlvMgr *glv_get_mgr(View *view);
     void glv_set_error_logger(GlvMgr *mgr, void (*logger_proc)(GlvMgr *mgr, const char *err));
@@ -84,6 +99,7 @@ View *glv_get_Parent(View *view);
 bool glv_is_focused(View *view);
 bool glv_is_visible(View *view);
 bool glv_is_mouse_over(View *view);
+void glv_set_style(View *view, const GlvSetStyle *style);
 
 //takes focus witout unfocusing others
 void glv_set_secondary_focus(View *view);
@@ -121,6 +137,8 @@ enum ViewMsg{
 
     VM_TEXT,
     VM_TEXT_EDITING,
+
+    VM_SET_STYLE,
 
     VM_GET_DOCS,
     VM_GET_VIEW_DATA_SIZE,
@@ -165,6 +183,42 @@ struct GlvEventTextEditing{
     char composition[32];
     int cursor;
     int selection_len;
+};
+
+struct GlvGradientStop {
+    float progress;
+    SDL_Color color;
+};
+
+struct GlvLinearGradient{
+    GlvColorStyleType type;
+    Uint32 stops_count;
+    GlvGradientStop stops[GLV_GRADIENT_STOPS_MAX];
+    GlvColorInterpolate stops_interpolate;
+    float angle;
+};
+
+struct GlvRadialGradient{
+    GlvColorStyleType type;
+    Uint32 stops_count;
+    GlvGradientStop stops[GLV_GRADIENT_STOPS_MAX];
+    GlvColorInterpolate stops_interpolate;
+    float angle;
+};
+
+union GlvColorStyle{
+    GlvColorStyleType type;
+    SDL_Color solid_color;
+    GlvLinearGradient linear_gradient;
+    GlvRadialGradient GlvRadialGradient;
+};
+
+struct GlvEventSetStyle{
+    Uint32 self_size;
+    bool apply_bg;
+    GlvColorStyle background;
+    bool apply_fg;
+    GlvColorStyle foreground;
 };
 
 #endif //GLV_H

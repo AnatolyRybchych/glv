@@ -343,6 +343,10 @@ bool glv_is_mouse_over(View *view){
     return view->is_mouse_over;
 }
 
+void glv_set_style(View *view, const GlvSetStyle *style){
+    glv_push_event(view, VM_SET_STYLE, (void*)style, style->self_size);
+}
+
 void glv_set_secondary_focus(View *view){
     if(view == NULL) return;
     if(view->is_focused != false) return;
@@ -851,6 +855,7 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_MOUSE_LEAVE, "NULL", "NULL", "calls on mouse leave");
         __DOC_CASE(VM_TEXT, "const char *", "NULL", "calls on text input if glv_is_focused(view)");
         __DOC_CASE(VM_TEXT_EDITING, "const GlvTextEditing *args", "NULL", "redirect of SDL_TEXTEDITING, requires SDL_StartTextInput");
+        __DOC_CASE(VM_SET_STYLE, "const GlvSetStyle *style", "NULL", "called after glv_set_style()");
         __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs");
         __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "unsigned int *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
     }

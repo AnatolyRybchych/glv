@@ -88,10 +88,12 @@ void view_proc2(View *view, uint32_t msg, void *in, void *out){
         GlvTextEditing *te = in;
         printf("[%i, %i]\ttext edit: \"%s\"\n", te->cursor, te->selection_len, te->composition);
     }break;
+    case VM_SET_STYLE:{
+        printf("set style\n");
+    } break;;
     }
     glv_proc_default(view, msg, in, out);
 }
-
 
 void view_proc(View *view, uint32_t msg, void *in, void *out){
     switch (msg){
