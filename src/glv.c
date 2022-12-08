@@ -196,7 +196,7 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
     return delete_mgr(&mgr);
 }
 
-void *get_view_data(View *view, unsigned int offset){
+void *glv_get_view_data(View *view, unsigned int offset){
     if(view->view_data_size <= offset){
         glv_log_err(glv_get_mgr(view), "get_view_data with offset out of data range");
         glv_quit(glv_get_mgr(view));

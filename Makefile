@@ -9,6 +9,9 @@ objects		+= mvp.o
 objects		+= builtin_shaders.o
 objects		+= glv_mgr.o
 
+#standard views 
+objects		+= text.o
+
 build:$(addprefix obj/, $(objects))
 	gcc $(CARGS) -o run $^ -lGL -lSDL2 -lm -lfreetype
 

@@ -50,7 +50,6 @@ GlvMgr *glv_get_mgr(View *view);
     void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src, const SDL_Rect *dst);
     void glv_log_err(GlvMgr *mgr, const char *err);
     SDL_Window *glv_get_window(GlvMgr *mgr);
-    SDL_Window *glv_get_window(GlvMgr *mgr);
 
     //returns -1 if error
     GlvFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index);
@@ -71,7 +70,7 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
 void glv_delete(View *view);
 void glv_proc_default(View *view, ViewMsg msg, void *in, void *out);
 int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view));
-void *get_view_data(View *view, unsigned int offset);
+void *glv_get_view_data(View *view, unsigned int offset);
 
 //handles in message queue
 //copies args 
