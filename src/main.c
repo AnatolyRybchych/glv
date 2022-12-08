@@ -56,6 +56,21 @@ void view_proc2(View *view, uint32_t msg, const void *in, void *out){
     case VM_UNFOCUS:{
         printf("unfocus\n");
     }break;
+    case VM_DELETE:{
+        printf("delete\n");
+    } break;
+    case VM_CHILD_RESIZE:{
+        printf("childs resize\n");
+    } break;
+    case VM_CHILD_MOVE:{
+        printf("child move\n");
+    } break;
+    case VM_CHILD_CREATE:{
+        printf("child create\n");
+    } break;
+    case VM_CHILD_DELETE:{
+        printf("child delete\n");
+    } break;
     case VM_KEY_DOWN:{
         const GlvKeyDown *ev = in;
         printf("key\t%i down repeat %i\n", ev->sym.sym, ev->repeat);

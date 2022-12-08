@@ -36,6 +36,8 @@ static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButton
 static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev);
 static void __handle_key(View *root, ViewMsg msg, const SDL_KeyboardEvent *ev);
 
+static Uint32 user_msg_first;
+
 void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
     View *result = malloc(sizeof(View));
     SDL_zerop(result);
@@ -209,7 +211,7 @@ void glv_push_event(View *view, ViewMsg message, const void *args, uint32_t args
     SDL_Event ev;
     GlvSdlEvent *glv_ev = (GlvSdlEvent*)&ev.user;
     glv_ev->type = SDL_USEREVENT;
-    glv_ev->message = message;
+    glv_ev->message = message + user_msg_first;
     glv_ev->view = view;
     glv_ev->windowID = view->mgr->wind_id;
     glv_ev->timestamp = SDL_GetTicks();
@@ -376,6 +378,7 @@ void glv_hide(View *view){
 static bool init_sdl(GlvMgr *mgr){
     if(SDL_Init(SDL_INIT_VIDEO) < 0){
         glv_log_err(mgr, SDL_GetError());
+        user_msg_first = SDL_RegisterEvents(VM_USER_LAST + 1);
         return false;
     }
     else{
@@ -417,6 +420,7 @@ static void create_mgr(GlvMgr *mgr){
     mgr->logger_proc = log_printf;
     mgr->min_frametime_ms = 10;
     mgr->last_frame_drawed_time_ms = SDL_GetTicks();
+    mgr->on_sdl_event = default_on_sdl_event;
 }
 
 static int delete_mgr(GlvMgr *mgr){
@@ -436,9 +440,9 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
         }break;
         case SDL_USEREVENT:{
             const GlvSdlEvent *glv_ev = (const GlvSdlEvent*)&ev->user;
-            if(!handle_private_message(glv_ev->view, glv_ev->message, glv_ev->data)){
-                glv_call_event(glv_ev->view, glv_ev->message, glv_ev->data, NULL);
-                glv_call_manage(glv_ev->view, glv_ev->message, glv_ev->data);
+            if(!handle_private_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data)){
+                glv_call_event(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data, NULL);
+                glv_call_manage(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data);
             }
             free(glv_ev->data);
         } break;
@@ -645,8 +649,6 @@ static void __manage_default(View *view, ViewMsg msg, const void *event_args, vo
     event_args = event_args;//unused
     user_context = user_context;//unused
 }
-
-
 
 static void __init_draw_texture_ifninit(GlvMgr *mgr){
     if(mgr->draw_texture_program.prog == 0){

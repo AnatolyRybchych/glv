@@ -33,6 +33,9 @@ GlvMgr *glv_get_mgr(View *view);
     void glv_log_err(GlvMgr *mgr, const char *err);
     SDL_Window *glv_get_window(GlvMgr *mgr);
 
+    //SDL_USEREVENT is taken
+    void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, const SDL_Event *event, void *root_context));
+
 void glv_enum_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
 void glv_enum_visible_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
 void glv_enum_focused_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
@@ -82,11 +85,11 @@ void glv_unset_secondary_focus(View *view);
 
 enum ViewMsg{
     VM_NULL,
-    VM_CREATE,
-    VM_DELETE,
-
     //calls last but not sent to view_proc or manage_proc
     VM_VIEW_FREE__,
+    
+    VM_CREATE,
+    VM_DELETE,
     VM_RESIZE,
     VM_MOVE,
     VM_MOUSE_DOWN,
@@ -107,6 +110,12 @@ enum ViewMsg{
 
     VM_GET_DOCS,
     VM_GET_VIEW_DATA_SIZE,
+
+
+    //user defined events should be in range [VM_USER_FIRST; VM_USER_LAST], this count is reserved by SDL_RegisterEvents
+    VM_USER_FIRST = 100,
+    //user defined events should be in range [VM_USER_FIRST; VM_USER_LAST], this count is reserved by SDL_RegisterEvents
+    VM_USER_LAST = 999,
 };
 
 struct GlvMsgDocs {

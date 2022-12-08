@@ -14,6 +14,12 @@ bool should_redraw(GlvMgr *mgr){
     }
 }
 
+void default_on_sdl_event(View *root, const SDL_Event *event, void *root_context){
+    root = root;//unused
+    event = event;//unused
+    root_context = root_context;//unused
+}
+
 void log_printf(GlvMgr *mgr, const char *log){
     mgr = mgr;
     fprintf(stderr, "\033[0;31mERROR:\"%s\"\033[0m\n", log);
@@ -137,6 +143,16 @@ void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src,
 
 SDL_Window *glv_get_window(GlvMgr *mgr){
     return mgr->window;
+}
+
+void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, const SDL_Event *event, void *root_context)){
+    SDL_assert(mgr != NULL);
+    if(on_sdl_event == NULL){
+        mgr->on_sdl_event = default_on_sdl_event;
+    }
+    else{
+        mgr->on_sdl_event = on_sdl_event;
+    }
 }
 
 void glv_log_err(GlvMgr *mgr, const char *err){

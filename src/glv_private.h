@@ -3,7 +3,8 @@
 
 #define draw_texture_vert __glv_private_draw_texture_vert
 #define draw_texture_frag __glv_private_draw_texture_frag
-#define log_printf __glv_log_printf
-#define should_redraw __glvshould_redraw
+#define log_printf __glv_private_log_printf
+#define should_redraw __glv_private_should_redraw
+#define default_on_sdl_event __glv_private_default_on_sdl_event
 
 #endif //GLV_PRIVATE_H

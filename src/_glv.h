@@ -5,6 +5,7 @@
 
 void log_printf(GlvMgr *mgr, const char *log);
 bool should_redraw(GlvMgr *mgr);
+void default_on_sdl_event(View *root, const SDL_Event *event, void *root_context);
 
 extern const char *draw_texture_vert;
 extern const char *draw_texture_frag;
@@ -50,6 +51,8 @@ struct GlvMgr{
     Uint32 wind_id;
     
     void (*logger_proc)(GlvMgr *mgr, const char *err);
+
+    void (*on_sdl_event)(View *root, const SDL_Event *event, void *root_context);
 
     bool required_redraw;
     View *root_view;
