@@ -26,6 +26,7 @@ static void __init_draw_texture_coord_bo(GlvMgr *mgr);
 static void __init_draw_texture_var_locations(GlvMgr *mgr);
 static void __free_draw_texture(GlvMgr *mgr);
 static void __set_view_visibility(View *view, bool is_visible);
+static void __set_is_mouse_over(View *view, bool is_mouse_over);
 
 static void __enum_delete_childs(View *child, void *unused);
 static void __enum_call_mouse_button_event(View *child, void *args_ptr);
@@ -357,6 +358,10 @@ bool glv_is_visible(View *view){
     return view->is_visible;
 }
 
+bool glv_is_mouse_over(View *view){
+    return view->is_mouse_over;
+}
+
 void glv_set_secondary_focus(View *view){
     if(view == NULL) return;
     if(view->is_focused != false) return;
@@ -432,6 +437,8 @@ void glv_hide(View *view){
     __set_view_visibility(view, false);
     glv_push_event(view, VM_HIDE, NULL, 0);
     unfocus_all_excepting(view, NULL);
+
+    __set_is_mouse_over(view, false);
 }
 
 static bool init_sdl(GlvMgr *mgr){
@@ -842,6 +849,18 @@ static void __set_view_visibility(View *view, bool is_visible){
     }
 }
 
+static void __set_is_mouse_over(View *view, bool is_mouse_over){
+    if(view->is_mouse_over == is_mouse_over) return;
+
+    view->is_mouse_over = is_mouse_over;
+    if(is_mouse_over){
+        glv_push_event(view, VM_MOUSE_HOVER, NULL, 0);
+    }
+    else{
+        glv_push_event(view, VM_MOUSE_LEAVE, NULL, 0);
+    }
+}
+
 static void __enum_delete_childs(View *child, void *unused){
     unused = unused;//unused
     glv_delete(child);
@@ -888,9 +907,13 @@ static void __enum_call_mouse_move_event(View *child, void *args_ptr){
     curr.x = args->x;
     curr.y = args->y;
 
-    if(curr.x < 0 || curr.y < 0) return;
-    if(curr.x > (int)child->w || curr.y > (int)child->h) return;
+    if(curr.x < 0 || curr.y < 0
+    || curr.x > (int)child->w || curr.y > (int)child->h){
+        __set_is_mouse_over(child, false);
+        return;
+    }
 
+    __set_is_mouse_over(child, true);
     glv_call_event(child, VM_MOUSE_MOVE, args, NULL);
     glv_call_manage(child, VM_MOUSE_MOVE, args);
     glv_enum_visible_childs(child, __enum_call_mouse_button_event, args);
@@ -937,6 +960,7 @@ static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev){
     };
 
     if(root->is_visible){
+        __set_is_mouse_over(root, true);
         glv_call_event(root, VM_MOUSE_MOVE, &args, NULL);
         glv_call_manage(root, VM_MOUSE_MOVE, &args);
         glv_enum_visible_childs(root, __enum_call_mouse_move_event, &args);

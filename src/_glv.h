@@ -77,6 +77,7 @@ struct View{
     bool is_drawable;
     bool is_visible;
     bool is_focused;
+    bool is_mouse_over;
 
     View *parent;
 

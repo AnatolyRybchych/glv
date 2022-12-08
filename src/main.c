@@ -71,6 +71,12 @@ void view_proc2(View *view, uint32_t msg, void *in, void *out){
     case VM_CHILD_DELETE:{
         printf("child delete\n");
     } break;
+    case VM_MOUSE_HOVER:{
+        printf("mouse hover\n");
+    } break;
+    case VM_MOUSE_LEAVE:{
+        printf("mouse leave\n");
+    } break;
     case VM_KEY_DOWN:{
         const GlvKeyDown *ev = in;
         printf("key\t%i down repeat %i\n", ev->sym.sym, ev->repeat);

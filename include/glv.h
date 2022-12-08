@@ -83,6 +83,7 @@ SDL_Point glv_get_size(View *view);
 View *glv_get_Parent(View *view);
 bool glv_is_focused(View *view);
 bool glv_is_visible(View *view);
+bool glv_is_mouse_over(View *view);
 
 //takes focus witout unfocusing others
 void glv_set_secondary_focus(View *view);
@@ -114,6 +115,9 @@ enum ViewMsg{
     VM_CHILD_MOVE,
     VM_CHILD_CREATE,
     VM_CHILD_DELETE,
+
+    VM_MOUSE_HOVER,
+    VM_MOUSE_LEAVE,
 
     VM_GET_DOCS,
     VM_GET_VIEW_DATA_SIZE,
