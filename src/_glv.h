@@ -49,6 +49,11 @@ struct GlvMgr{
     SDL_GLContext *gl_rc;
     SDL_Window *window;
     Uint32 wind_id;
+
+    FT_Library ft_lib;
+
+    Uint32 faces_cnt;
+    FT_Face *faces;
     
     void (*logger_proc)(GlvMgr *mgr, const char *err);
 

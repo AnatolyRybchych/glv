@@ -116,6 +116,11 @@ void view_proc(View *view, uint32_t msg, void *in, void *out){
 }
 
 void init_spa(View *view){
+    GlvMgr *mgr = glv_get_mgr(view);
+    GlvFaceId sarai_face_id = glv_new_freetype_face(mgr, "./Sarai.ttf", 0);
+
+    printf("%i\n", sarai_face_id);
+
     View *child = glv_create(view, view_proc2, NULL, NULL);
 
     glv_set_pos(child, 100, 100);
@@ -123,6 +128,5 @@ void init_spa(View *view){
 }
 
 int main(void){
-
     return glv_run(view_proc, manage_proc, NULL, init_spa);
 }

@@ -3,6 +3,8 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include <stdbool.h>
 #include <mvp.h>
 
@@ -12,6 +14,7 @@ typedef struct GlvMgr GlvMgr;
 typedef struct View View;
 
 typedef unsigned int ViewMsg;
+typedef int GlvFaceId;
 typedef void (*ViewProc)(View *view, ViewMsg msg, void *in, void *out);
 typedef void (*ViewManage)(View *view, ViewMsg msg, void *event_args, void *user_context);
 
@@ -47,6 +50,14 @@ GlvMgr *glv_get_mgr(View *view);
     void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src, const SDL_Rect *dst);
     void glv_log_err(GlvMgr *mgr, const char *err);
     SDL_Window *glv_get_window(GlvMgr *mgr);
+    SDL_Window *glv_get_window(GlvMgr *mgr);
+
+    //returns -1 if error
+    GlvFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index);
+
+    //returns -1 if error
+    GlvFaceId glv_new_freetype_face_mem(GlvMgr *mgr, const void *data, FT_Long data_size, FT_Long face_index);
+    FT_Face glv_get_freetype_face(GlvMgr *mgr, GlvFaceId id);
 
     //SDL_USEREVENT some events are reserved by SDL_RegisterEvents() 
     void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, const SDL_Event *event, void *root_context));
@@ -99,6 +110,8 @@ View *glv_get_Parent(View *view);
 bool glv_is_focused(View *view);
 bool glv_is_visible(View *view);
 bool glv_is_mouse_over(View *view);
+
+//can be differ of GlvSetStyle, but contains GlvSetStyle in offset(0)
 void glv_set_style(View *view, const GlvSetStyle *style);
 
 //takes focus witout unfocusing others
@@ -215,10 +228,17 @@ union GlvColorStyle{
 
 struct GlvEventSetStyle{
     Uint32 self_size;
+
     bool apply_bg;
     GlvColorStyle background;
+
     bool apply_fg;
     GlvColorStyle foreground;
+
+    bool apply_font;
+    GlvFaceId font_face_id;
+    FT_UInt font_width;
+    FT_UInt font_height;
 };
 
 #endif //GLV_H

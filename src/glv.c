@@ -20,6 +20,7 @@ static void __free_draw_texture(GlvMgr *mgr);
 static bool __init_sdl(GlvMgr *mgr);
 static bool __init_window(GlvMgr *mgr);
 static bool __init_gl_ctx(GlvMgr *mgr);
+static bool __init_freetype2(GlvMgr *mgr);
 
 static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 static void __init_texture_1x1(View *view);
@@ -164,8 +165,8 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
 
     if(!__init_sdl(&mgr)
     || !__init_window(&mgr)
-    || !__init_gl_ctx(&mgr)){
-        glv_log_err(&mgr, NULL);
+    || !__init_gl_ctx(&mgr)
+    || !__init_freetype2(&mgr)){
         return EXIT_FAILURE;
     }
 
@@ -436,6 +437,20 @@ static void create_mgr(GlvMgr *mgr){
 }
 
 static int delete_mgr(GlvMgr *mgr){
+    for(int face_id = mgr->faces_cnt - 1; face_id >= 0; face_id--){
+        FT_Error err = FT_Done_Face(mgr->faces[face_id]);
+        if(err){
+            glv_log_err(mgr, "cannot done freetype2 face");
+            glv_log_err(mgr, FT_Error_String(err));
+        }
+    }
+
+    mgr->faces_cnt = 0;
+    free(mgr->faces);
+    mgr->faces = NULL;
+
+    FT_Done_FreeType(mgr->ft_lib);
+
     __free_draw_texture(mgr);
     SDL_DestroyWindow(mgr->window);
     SDL_GL_DeleteContext(mgr);
@@ -691,6 +706,16 @@ static bool __init_gl_ctx(GlvMgr *mgr){
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+    return true;
+}
+
+static bool __init_freetype2(GlvMgr *mgr){
+    FT_Error err = FT_Init_FreeType(&mgr->ft_lib);
+    if(err != FT_Err_Ok){
+        glv_log_err(mgr, "cannot load freetype2 library");
+        glv_log_err(mgr, FT_Error_String(err));
+        return false;
+    }
     return true;
 }
 

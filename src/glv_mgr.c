@@ -145,6 +145,73 @@ SDL_Window *glv_get_window(GlvMgr *mgr){
     return mgr->window;
 }
 
+GlvFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index){
+    SDL_assert(mgr != NULL);
+    SDL_assert(filepath != NULL);
+
+    FT_Face face;
+
+    FT_Error err = FT_New_Face(mgr->ft_lib, filepath, face_index, &face);
+    if(err != FT_Err_Ok){
+        char err_buffer[256 + 1];
+        snprintf(err_buffer, 256, "glv_new_freetype_face(): %s filepath : \"%s\"", "freetype2 cannot open face", filepath);
+        glv_log_err(mgr, err_buffer);
+        glv_log_err(mgr, FT_Error_String(err));
+        return -1;
+    }
+
+    mgr->faces_cnt++;
+    mgr->faces = realloc(mgr->faces, mgr->faces_cnt * sizeof(FT_Face));
+    mgr->faces[mgr->faces_cnt - 1] = face;
+    return mgr->faces_cnt - 1;
+}
+
+GlvFaceId glv_new_freetype_face_mem(GlvMgr *mgr, const void *data, FT_Long data_size, FT_Long face_index){
+    SDL_assert(mgr != NULL);
+    SDL_assert(data != NULL);
+
+    FT_Face face;
+
+    FT_Error err = FT_New_Memory_Face(mgr->ft_lib, data, data_size, face_index, &face);
+    if(err != FT_Err_Ok){
+        glv_log_err(mgr, "glv_new_freetype_face_mem(): freetype2 cannot open memmory face");
+        glv_log_err(mgr, FT_Error_String(err));
+        return -1;
+    }
+
+    mgr->faces_cnt++;
+    mgr->faces = realloc(mgr->faces, mgr->faces_cnt * sizeof(FT_Face));
+    mgr->faces[mgr->faces_cnt - 1] = face;
+    return mgr->faces_cnt - 1;
+}
+
+FT_Face glv_get_freetype_face(GlvMgr *mgr, GlvFaceId id){
+    SDL_assert(mgr != NULL);
+
+    if(mgr->faces_cnt == 0){
+        glv_log_err(mgr, "glv_get_freetype_face(): faces count is 0, returned NULL");
+        return NULL;
+    }
+
+    if(id < 0){
+        char err_buffer[256 + 1];
+        snprintf(err_buffer, 256, "glv_get_freetype_face(): id is out of range, id=%i, returned NULL", id);
+        glv_log_err(mgr, err_buffer);
+        return NULL;
+    }
+    
+    GlvFaceId id_to_return = id;
+
+    if((Uint32)id >= mgr->faces_cnt){
+        id_to_return = mgr->faces_cnt - 1;
+        char err_buffer[256 + 1];
+        snprintf(err_buffer, 256, "glv_get_freetype_face(): id is out of range, id=%i, returned font for id=%i", id, id_to_return);
+        glv_log_err(mgr, err_buffer);
+    }
+
+    return mgr->faces[id_to_return];
+}
+
 void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, const SDL_Event *event, void *root_context)){
     SDL_assert(mgr != NULL);
     if(on_sdl_event == NULL){

@@ -1,15 +1,16 @@
 
 
-CARGS	:= -ggdb -Iinclude -Wall -Wextra -Werror -pedantic
+INCLUDE		:= -I/usr/include/freetype2/
+CARGS		:= $(INCLUDE) -ggdb -Iinclude -Wall -Wextra -Werror -pedantic
 
-objects	+= main.o
-objects	+= glv.o
-objects	+= mvp.o
-objects	+= builtin_shaders.o
-objects	+= glv_mgr.o
+objects		+= main.o
+objects		+= glv.o
+objects		+= mvp.o
+objects		+= builtin_shaders.o
+objects		+= glv_mgr.o
 
 build:$(addprefix obj/, $(objects))
-	gcc $(CARGS) -o run $^ -lGL -lSDL2 -lm
+	gcc $(CARGS) -o run $^ -lGL -lSDL2 -lm -lfreetype
 
 obj/%.o:src/%.c
 	@mkdir -p ./obj
