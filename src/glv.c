@@ -575,10 +575,28 @@ static void draw_views_recursive(View *view){
 static void handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
     switch (msg){
         __DOC_CASE(VM_NULL, "NULL", "NULL", "doesnt handles");
+        __DOC_CASE(VM_VIEW_FREE__, "NULL", "NULL", "handles only by view manager");
         __DOC_CASE(VM_CREATE, "NULL", "NULL", "calls once on create");
         __DOC_CASE(VM_DELETE, "NULL", "NULL", "calls once on delete");
         __DOC_CASE(VM_RESIZE, "const SDL_Point *new_size", "NULL", "calls when view is resized");
         __DOC_CASE(VM_MOVE, "const SDL_Point *new_pos", "NULL", "calls when view is moved");
+        __DOC_CASE(VM_MOUSE_DOWN, "const GlvMouseDown *args", "NULL", "calls when is mouse pressed");
+        __DOC_CASE(VM_MOUSE_UP, "const GlvMouseUp *args", "NULL", "calls when is mouse released");
+        __DOC_CASE(VM_MOUSE_MOVE, "const GlvMouseMove *args", "NULL", "calls when is mouse moved");
+        __DOC_CASE(VM_DRAW, "NULL", "NULL", "calls when glv_draw(view) is called");
+        __DOC_CASE(VM_SHOW, "NULL", "NULL", "calls on show");
+        __DOC_CASE(VM_HIDE, "NULL", "NULL", "calls on hide");
+        __DOC_CASE(VM_FOCUS, "NULL", "NULL", "calls on focus");
+        __DOC_CASE(VM_UNFOCUS, "NULL", "NULL", "calls on focus lost");
+        __DOC_CASE(VM_KEY_DOWN, "const GlvKeyDown *args", "NULL", "calls on key down and view is focused");
+        __DOC_CASE(VM_KEY_UP, "const GlvKeyUp *args", "NULL", "calls on key up and view is focused");
+        __DOC_CASE(VM_CHILD_RESIZE, "View* view", "NULL", "calls on child resize");
+        __DOC_CASE(VM_CHILD_MOVE, "View* view", "NULL", "calls on child move");
+        __DOC_CASE(VM_CHILD_CREATE, "View* view", "NULL", "calls on child create");
+        __DOC_CASE(VM_CHILD_DELETE, "View* view", "NULL", "calls on child delete");
+
+        __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs");
+        __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "unsigned int *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
     }
 }
 
