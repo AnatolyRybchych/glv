@@ -51,9 +51,15 @@ void view_proc2(View *view, uint32_t msg, void *in, void *out){
         printf("mouse move \t{%i, %i}\n", ev->x, ev->y);
     } break;
     case VM_FOCUS:{
+        SDL_StartTextInput();
         printf("focus\n");
     }break;
     case VM_UNFOCUS:{
+        SDL_Rect te = {
+            100, 100, 100, 100
+        };
+        SDL_SetTextInputRect(&te);
+        SDL_StopTextInput();
         printf("unfocus\n");
     }break;
     case VM_DELETE:{
@@ -80,7 +86,14 @@ void view_proc2(View *view, uint32_t msg, void *in, void *out){
     case VM_KEY_DOWN:{
         const GlvKeyDown *ev = in;
         printf("key\t%i down repeat %i\n", ev->sym.sym, ev->repeat);
-    }
+    }break;
+    case VM_TEXT:{
+        printf("text_input: \"%s\"\n", (const char *)in);
+    }break;
+    case VM_TEXT_EDITING:{
+        GlvTextEditing *te = in;
+        printf("[%i, %i]\ttext edit: \"%s\"\n", te->cursor, te->selection_len, te->composition);
+    }break;
     }
     glv_proc_default(view, msg, in, out);
 }

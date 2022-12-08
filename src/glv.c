@@ -33,6 +33,8 @@ static void __enum_call_mouse_button_event(View *child, void *args_ptr);
 static void __enum_call_mouse_move_event(View *child, void *args_ptr);
 static void __enum_set_secondary_focus(View *view, void *unused);
 static void __enum_call_key_event(View *view, void *args_ptr);
+static void __enum_call_textinput_event(View *view, void *args_ptr);
+static void __enum_call_textediting_event(View *view, void *args_ptr);
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev);
 static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev);
@@ -382,6 +384,7 @@ void glv_unset_secondary_focus(View *view){
 }
 
 void glv_print_docs(View *view, ViewMsg message){
+    SDL_assert(view != NULL);
     GlvMsgDocs docs = glv_get_docs(view, message);
 
     printf("\033[0;32m");
@@ -534,6 +537,19 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             if(ev->button.windowID != mgr->wind_id) break;;
             __handle_key(mgr->root_view, VM_KEY_UP, &ev->key);
         }break;
+        case SDL_TEXTINPUT:{
+            glv_push_event(mgr->root_view, VM_TEXT, (char*)&(ev->text.text[0]), sizeof(char[32]));
+            glv_enum_focused_childs(mgr->root_view, __enum_call_textinput_event, (char *)ev->text.text);
+        }break;
+        case SDL_TEXTEDITING:{
+            GlvTextEditing te;
+            memcpy(te.composition, ev->edit.text, sizeof(char[32]));
+            te.cursor = ev->edit.start;
+            te.selection_len = ev->edit.length;
+            glv_push_event(mgr->root_view, VM_TEXT_EDITING, &te, sizeof(GlvTextEditing));
+            
+            glv_enum_childs(mgr->root_view, __enum_call_textediting_event, &te);
+        }break;
     }
 }
 
@@ -642,7 +658,8 @@ static void handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_CHILD_DELETE, "View* view", "NULL", "calls on child delete");
         __DOC_CASE(VM_MOUSE_HOVER, "NULL", "NULL", "calls on mouse hover");
         __DOC_CASE(VM_MOUSE_LEAVE, "NULL", "NULL", "calls on mouse leave");
-
+        __DOC_CASE(VM_TEXT, "const char *", "NULL", "calls on text input if glv_is_focused(view)");
+        __DOC_CASE(VM_TEXT_EDITING, "const GlvTextEditing *args", "NULL", "redirect of SDL_TEXTEDITING, requires SDL_StartTextInput");
         __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs");
         __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "unsigned int *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
     }
@@ -931,6 +948,16 @@ static void __enum_call_key_event(View *view, void *args_ptr){
     glv_call_manage(view, args->message, &args->ev);
 
     glv_enum_focused_childs(view, __enum_call_key_event, args);
+}
+
+static void __enum_call_textinput_event(View *view, void *args_ptr){
+    glv_push_event(view, VM_TEXT, args_ptr, sizeof(char[32]));
+    glv_enum_focused_childs(view, __enum_call_textinput_event, args_ptr);
+}
+
+static void __enum_call_textediting_event(View *view, void *args_ptr){
+    glv_push_event(view, VM_TEXT_EDITING, args_ptr, sizeof(GlvTextEditing));
+    glv_enum_childs(view, __enum_call_textediting_event, args_ptr);
 }
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev){

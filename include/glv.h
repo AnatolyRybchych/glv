@@ -21,6 +21,7 @@ typedef struct GlvEventMouseButton GlvMouseUp;
 typedef struct GlvEventMouseMove GlvMouseMove;
 typedef struct GlvEventKey GlvKeyUp;
 typedef struct GlvEventKey GlvKeyDown;
+typedef struct GlvEventTextEditing GlvTextEditing;
 
 GlvMgr *glv_get_mgr(View *view);
     void glv_set_error_logger(GlvMgr *mgr, void (*logger_proc)(GlvMgr *mgr, const char *err));
@@ -119,9 +120,11 @@ enum ViewMsg{
     VM_MOUSE_HOVER,
     VM_MOUSE_LEAVE,
 
+    VM_TEXT,
+    VM_TEXT_EDITING,
+
     VM_GET_DOCS,
     VM_GET_VIEW_DATA_SIZE,
-
 
     //user defined events should be in range [VM_USER_FIRST; VM_USER_LAST], this count is reserved by SDL_RegisterEvents
     VM_USER_FIRST = 100,
@@ -157,6 +160,12 @@ struct GlvEventMouseMove{
 struct GlvEventKey{
     SDL_Keysym sym;
     Uint8 repeat;
+};
+
+struct GlvEventTextEditing{
+    char composition[32];
+    int cursor;
+    int selection_len;
 };
 
 #endif //GLV_H

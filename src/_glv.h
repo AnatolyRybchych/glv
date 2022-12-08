@@ -78,6 +78,7 @@ struct View{
     bool is_visible;
     bool is_focused;
     bool is_mouse_over;
+    bool is_text_input;
 
     View *parent;
 
