@@ -431,6 +431,7 @@ static int delete_mgr(GlvMgr *mgr){
 }
 
 static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
+    mgr->on_sdl_event(mgr->root_view, ev, mgr->root_view->user_context);
     switch (ev->type){
         case SDL_WINDOWEVENT:
             handle_winevents(mgr, &ev->window);
@@ -439,6 +440,7 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             mgr->is_running = false;
         }break;
         case SDL_USEREVENT:{
+            if(ev->user.code < (Sint32)user_msg_first || ev->user.code > (Sint32)user_msg_first + VM_USER_LAST) return;
             const GlvSdlEvent *glv_ev = (const GlvSdlEvent*)&ev->user;
             if(!handle_private_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data)){
                 glv_call_event(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data, NULL);
