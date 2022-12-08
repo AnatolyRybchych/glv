@@ -640,6 +640,8 @@ static void handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_CHILD_MOVE, "View* view", "NULL", "calls on child move");
         __DOC_CASE(VM_CHILD_CREATE, "View* view", "NULL", "calls on child create");
         __DOC_CASE(VM_CHILD_DELETE, "View* view", "NULL", "calls on child delete");
+        __DOC_CASE(VM_MOUSE_HOVER, "NULL", "NULL", "calls on mouse hover");
+        __DOC_CASE(VM_MOUSE_LEAVE, "NULL", "NULL", "calls on mouse leave");
 
         __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs");
         __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "unsigned int *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
