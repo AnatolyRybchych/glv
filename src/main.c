@@ -2,7 +2,7 @@
 #include <glv.h>
 #include <SDL2/SDL.h>
 
-void manage_proc(View *view, uint32_t msg, const void *in, void *user_data){
+void manage_proc(View *view, uint32_t msg, void *in, void *user_data){
     in = in;//unused
     user_data = user_data;//unused
     switch (msg){
@@ -13,7 +13,7 @@ void manage_proc(View *view, uint32_t msg, const void *in, void *user_data){
     }
 }
 
-void view_proc2(View *view, uint32_t msg, const void *in, void *out){
+void view_proc2(View *view, uint32_t msg, void *in, void *out){
     switch (msg){
     case VM_CREATE:{
         glv_draw(view);
@@ -80,7 +80,7 @@ void view_proc2(View *view, uint32_t msg, const void *in, void *out){
 }
 
 
-void view_proc(View *view, uint32_t msg, const void *in, void *out){
+void view_proc(View *view, uint32_t msg, void *in, void *out){
     switch (msg){
     case VM_CREATE:{
         glv_draw(view);

@@ -18,7 +18,7 @@ void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc,
 static void __draw_views_recursive(View *view, SDL_Rect parent);
 static void __init_texture_1x1(View *view);
 static void __init_framebuffer(View *view);
-static void __manage_default(View *view, ViewMsg msg, const void *event_args, void *user_context);
+static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context);
 static void __init_draw_texture_ifninit(GlvMgr *mgr);
 static void __init_draw_texture_program(GlvMgr *mgr);
 static void __init_draw_texture_vbo(GlvMgr *mgr);
@@ -164,7 +164,7 @@ void glv_manage_default(View *view, ViewMsg msg, const void *event_args, void *u
     msg = msg;//unused
 }
 
-void glv_proc_default(View *view, ViewMsg msg, const void *in, void *out){
+void glv_proc_default(View *view, ViewMsg msg, void *in, void *out){
     in = in;//unused
     out = out;//unused
     view = view;//unused
@@ -220,11 +220,11 @@ void *get_view_data(View *view, unsigned int offset){
         return NULL;
     }
     else{
-        return view->view_data + offset;
+        return (char*)view->view_data + offset;
     }
 }
 
-void glv_push_event(View *view, ViewMsg message, const void *args, uint32_t args_size){
+void glv_push_event(View *view, ViewMsg message, void *args, uint32_t args_size){
     SDL_assert(view != NULL);
     SDL_assert((args_size != 0 && args == NULL) == false);
 
@@ -247,12 +247,12 @@ void glv_push_event(View *view, ViewMsg message, const void *args, uint32_t args
     SDL_PushEvent(&ev);
 }
 
-void glv_call_event(View *view, ViewMsg message, const void *in, void *out){
+void glv_call_event(View *view, ViewMsg message, void *in, void *out){
     SDL_assert(view != NULL);
     view->view_proc(view, message, in, out);
 }
 
-void glv_call_manage(View *view, ViewMsg message, const void *event_args){
+void glv_call_manage(View *view, ViewMsg message, void *event_args){
     SDL_assert(view != NULL);
     view->view_manage(view, message, event_args, view->user_context);
 }
@@ -316,6 +316,45 @@ void glv_set_focus(View *view){
     unfocus_all_excepting(view, view);
     glv_set_secondary_focus(view);
     glv_enum_parents(view, __enum_set_secondary_focus, NULL);
+}
+
+SDL_Point glv_get_pos(View *view){
+    SDL_assert(view != NULL);
+    if(view->mgr->root_view == view){
+        SDL_Point result;
+        SDL_GetWindowPosition(view->mgr->window, &result.x, &result.y);
+        return result;
+    }else return (SDL_Point){
+        .x = view->x,
+        .y = view->y,
+    };
+}
+
+SDL_Point glv_get_size(View *view){
+    SDL_assert(view != NULL);
+    if(view->mgr->root_view == view){
+        SDL_Point result;
+        SDL_GetWindowSize(view->mgr->window, &result.x, &result.y);
+        return result;
+    }else return (SDL_Point){
+        .x = view->w,
+        .y = view->h,
+    };
+}
+
+View *glv_get_Parent(View *view){
+    SDL_assert(view != NULL);
+    return view->parent;
+}
+
+bool glv_is_focused(View *view){
+    SDL_assert(view != NULL);
+    return view->is_focused;
+}
+
+bool glv_is_visible(View *view){
+    SDL_assert(view != NULL);
+    return view->is_visible;
 }
 
 void glv_set_secondary_focus(View *view){
@@ -689,7 +728,7 @@ static void __init_framebuffer(View *view){
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-static void __manage_default(View *view, ViewMsg msg, const void *event_args, void *user_context){
+static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context){
     view = view;//unused
     msg = msg;//unused
     event_args = event_args;//unused

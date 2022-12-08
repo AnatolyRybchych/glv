@@ -11,8 +11,8 @@ typedef struct GlvMgr GlvMgr;
 typedef struct View View;
 
 typedef unsigned int ViewMsg;
-typedef void (*ViewProc)(View *view, ViewMsg msg, const void *in, void *out);
-typedef void (*ViewManage)(View *view, ViewMsg msg, const void *event_args, void *user_context);
+typedef void (*ViewProc)(View *view, ViewMsg msg, void *in, void *out);
+typedef void (*ViewManage)(View *view, ViewMsg msg, void *event_args, void *user_context);
 
 typedef struct GlvMsgDocs GlvMsgDocs;
 
@@ -43,21 +43,21 @@ void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), vo
 
 View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 void glv_delete(View *view);
-void glv_proc_default(View *view, ViewMsg msg, const void *in, void *out);
+void glv_proc_default(View *view, ViewMsg msg, void *in, void *out);
 int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view));
 void *get_view_data(View *view, unsigned int offset);
 
 //handles in message queue
 //copies args 
 //handles by manage proc
-void glv_push_event(View *view, ViewMsg message, const void *args, uint32_t args_size);
+void glv_push_event(View *view, ViewMsg message, void *args, uint32_t args_size);
 
 //handles instantly
 //doesnt handles by manage proc
-void glv_call_event(View *view, ViewMsg message, const void *in, void *out);
+void glv_call_event(View *view, ViewMsg message, void *in, void *out);
 
 //handles only by manage proc
-void glv_call_manage(View *view, ViewMsg message, const void *event_args);
+void glv_call_manage(View *view, ViewMsg message, void *event_args);
 
 void glv_bind_view_framebuffer(View *view);
 GLuint glv_get_texture(View *view);
@@ -77,6 +77,12 @@ void glv_draw(View *view);
 void glv_show(View *view);
 void glv_hide(View *view);
 void glv_set_focus(View *view);
+SDL_Point glv_get_pos(View *view);
+SDL_Point glv_get_size(View *view);
+//return NULL if view is root
+View *glv_get_Parent(View *view);
+bool glv_is_focused(View *view);
+bool glv_is_visible(View *view);
 
 //takes focus witout unfocusing others
 void glv_set_secondary_focus(View *view);
