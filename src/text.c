@@ -11,6 +11,10 @@ typedef struct TextViewData{
     GlvFaceId face;
 } TextViewData;
 
+typedef struct TextViewSingleton{
+    int test_value;
+} TextViewSingleton;
+
 static void view_proc(View *view, ViewMsg msg, void *in, void *out){
     static Uint32 data_offset;
 
@@ -21,21 +25,20 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
         data->face_height = 800;
         data->face_width = 0;
         data->face = 0;
-        glv_draw(view);
     }break;
     case VM_GET_VIEW_DATA_SIZE:{
         glv_proc_default(view, msg, in, out);
+        
         data_offset = *(Uint32*)out;
         *(Uint32*)out += sizeof(TextViewData);
     }break;
     case VM_GET_SINGLETON_DATA_SIZE:{
-        printf("singlenot create\n");
+        *(Uint32*)out = sizeof(TextViewSingleton);
     }break;
     case VM_SINGLETON_DATA_DELETE:{
-        printf("singlenot delete\n");
+
     }break;
     case VM_DRAW:{
-        
         TextViewData *data = glv_get_view_data(view, data_offset);
         FT_Face face = glv_get_freetype_face(glv_get_mgr(view), data->face);
 

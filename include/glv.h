@@ -151,6 +151,8 @@ enum ViewMsg{
     VM_TEXT,
     VM_TEXT_EDITING,
 
+    VM_SDL_REDIRECT,
+
     VM_SET_STYLE,
 
     VM_GET_DOCS,

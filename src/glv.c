@@ -40,6 +40,7 @@ static void __enum_set_secondary_focus(View *view, void *unused);
 static void __enum_call_key_event(View *view, void *args_ptr);
 static void __enum_call_textinput_event(View *view, void *args_ptr);
 static void __enum_call_textediting_event(View *view, void *args_ptr);
+static void __enum_call_sdl_redirect_event(View *view, void *args_ptr);
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev);
 static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev);
@@ -485,47 +486,53 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
     if(mgr->root_view != NULL){
         mgr->on_sdl_event(mgr->root_view, ev, mgr->root_view->user_context);
     }
+    else{
+        return;
+    }
+    
     switch (ev->type){
         case SDL_WINDOWEVENT:
             __handle_winevents(mgr, &ev->window);
-        break;
+        return;
         case SDL_QUIT:{
             mgr->is_running = false;
-        }break;
+        }return;
         case SDL_USEREVENT:{
-            if(ev->user.code < (Sint32)user_msg_first || ev->user.code > (Sint32)user_msg_first + VM_USER_LAST) return;
+            if(ev->user.code < (Sint32)user_msg_first || ev->user.code > (Sint32)user_msg_first + VM_USER_LAST) break;
             const GlvSdlEvent *glv_ev = (const GlvSdlEvent*)&ev->user;
             if(!handle_private_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data)){
                 glv_call_event(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data, NULL);
                 glv_call_manage(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data);
             }
             free(glv_ev->data);
-        } break;
+        } return;
         case SDL_MOUSEBUTTONDOWN:
-            if(ev->button.windowID != mgr->wind_id) break;;
+            if(ev->button.windowID != mgr->wind_id) return;
             __handle_mouse_button(mgr->root_view, VM_MOUSE_DOWN, &ev->button);
-        break;
+        return;
         case SDL_MOUSEBUTTONUP:
-            if(ev->button.windowID != mgr->wind_id) break;;
+            if(ev->button.windowID != mgr->wind_id) return;
             __handle_mouse_button(mgr->root_view, VM_MOUSE_UP, &ev->button);
-        break;
+        return;
         case SDL_MOUSEMOTION:{
-            if(ev->button.windowID != mgr->wind_id) break;;
+            if(ev->motion.windowID != mgr->wind_id) return;
             __handle_mouse_move(mgr->root_view, &ev->motion);
-        }break;
+        }return;
         case SDL_KEYDOWN:{
-            if(ev->button.windowID != mgr->wind_id) break;;
+            if(ev->key.windowID != mgr->wind_id) return;
             __handle_key(mgr->root_view, VM_KEY_DOWN, &ev->key);
-        }break;
+        }return;
         case SDL_KEYUP:{
-            if(ev->button.windowID != mgr->wind_id) break;;
+            if(ev->key.windowID != mgr->wind_id) return;
             __handle_key(mgr->root_view, VM_KEY_UP, &ev->key);
-        }break;
+        }return;
         case SDL_TEXTINPUT:{
+            if(ev->text.windowID) return;
             glv_push_event(mgr->root_view, VM_TEXT, (char*)&(ev->text.text[0]), sizeof(char[32]));
             glv_enum_focused_childs(mgr->root_view, __enum_call_textinput_event, (char *)ev->text.text);
-        }break;
+        }return;
         case SDL_TEXTEDITING:{
+            if(ev->edit.windowID) return;
             GlvTextEditing te;
             memcpy(te.composition, ev->edit.text, sizeof(char[32]));
             te.cursor = ev->edit.start;
@@ -533,7 +540,11 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             glv_push_event(mgr->root_view, VM_TEXT_EDITING, &te, sizeof(GlvTextEditing));
             
             glv_enum_childs(mgr->root_view, __enum_call_textediting_event, &te);
-        }break;
+        }return;
+        
+    }
+    if(mgr->root_view != NULL){
+        __enum_call_sdl_redirect_event(mgr->root_view, (void*)ev);
     }
 }
 
@@ -844,7 +855,7 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
     switch (msg){
         __DOC_CASE(VM_NULL, "NULL", "NULL", "doesnt handles");
         __DOC_CASE(VM_VIEW_FREE__, "NULL", "NULL", "handles only by view manager");
-        __DOC_CASE(VM_CREATE, "NULL", "NULL", "calls once on create");
+        __DOC_CASE(VM_CREATE, "NULL", "NULL", "calls once on create, handles without queue");
         __DOC_CASE(VM_DELETE, "NULL", "NULL", "calls once on delete");
         __DOC_CASE(VM_RESIZE, "const SDL_Point *new_size", "NULL", "calls when view is resized");
         __DOC_CASE(VM_MOVE, "const SDL_Point *new_pos", "NULL", "calls when view is moved");
@@ -866,11 +877,12 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_MOUSE_LEAVE, "NULL", "NULL", "calls on mouse leave");
         __DOC_CASE(VM_TEXT, "const char *", "NULL", "calls on text input if glv_is_focused(view)");
         __DOC_CASE(VM_TEXT_EDITING, "const GlvTextEditing *args", "NULL", "redirect of SDL_TEXTEDITING, requires SDL_StartTextInput");
+        __DOC_CASE(VM_SDL_REDIRECT, "const SDL_Event *args", "NULL", "redirect of sdl events, handles without queue");
         __DOC_CASE(VM_SET_STYLE, "const GlvSetStyle *style", "NULL", "called after glv_set_style()");
-        __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs");
-        __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "Uint32 *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
-        __DOC_CASE(VM_GET_SINGLETON_DATA_SIZE, "NULL", "Uint32 *data_size", "called once before first same view create to init data shared for same view data, View *view == NULL for this event");
-        __DOC_CASE(VM_SINGLETON_DATA_DELETE, "NULL", "NULL", "called once right before singletond data is destroyed, View *view == NULL for this event");
+        __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs, handles without queue");
+        __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "Uint32 *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data, handles without queue");
+        __DOC_CASE(VM_GET_SINGLETON_DATA_SIZE, "NULL", "Uint32 *data_size", "called once before first same view create to init data shared for same view data, View *view == NULL for this event, handles without queue");
+        __DOC_CASE(VM_SINGLETON_DATA_DELETE, "NULL", "NULL", "called once right before singletond data is destroyed, View *view == NULL for this event, handles without queue");
     }
 }
 
@@ -1051,6 +1063,12 @@ static void __enum_call_textinput_event(View *view, void *args_ptr){
 static void __enum_call_textediting_event(View *view, void *args_ptr){
     glv_push_event(view, VM_TEXT_EDITING, args_ptr, sizeof(GlvTextEditing));
     glv_enum_childs(view, __enum_call_textediting_event, args_ptr);
+}
+
+static void __enum_call_sdl_redirect_event(View *view, void *args_ptr){
+    glv_call_event(view, VM_SDL_REDIRECT, args_ptr, NULL);
+    glv_call_manage(view, VM_SDL_REDIRECT, args_ptr);
+    glv_enum_visible_childs(view, __enum_call_sdl_redirect_event, args_ptr);
 }
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev){
