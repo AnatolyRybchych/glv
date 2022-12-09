@@ -10,6 +10,10 @@ void default_on_sdl_event(View *root, const SDL_Event *event, void *root_context
 extern const char *draw_texture_vert;
 extern const char *draw_texture_frag;
 
+typedef struct SingletonData{
+    ViewProc proc;
+} SingletonData;
+
 typedef struct _MBEvEnumArgs{
     struct GlvEventMouseButton ev;
     ViewMsg message;
@@ -55,6 +59,9 @@ struct GlvMgr{
     Uint32 faces_cnt;
     FT_Face *faces;
     
+    Uint32 view_singleton_data_cnt;
+    SingletonData **view_singleton_data;
+
     void (*logger_proc)(GlvMgr *mgr, const char *err);
 
     void (*on_sdl_event)(View *root, const SDL_Event *event, void *root_context);
@@ -73,6 +80,8 @@ struct View{
 
     GLuint framebuffer;
     GLuint texture;
+
+    void *singleton_data;
 
     int x;
     int y;

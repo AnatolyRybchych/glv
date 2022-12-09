@@ -20,12 +20,19 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
         data->text = NULL;
         data->face_height = 800;
         data->face_width = 0;
+        data->face = 0;
         glv_draw(view);
     }break;
     case VM_GET_VIEW_DATA_SIZE:{
         glv_proc_default(view, msg, in, out);
         data_offset = *(Uint32*)out;
         *(Uint32*)out += sizeof(TextViewData);
+    }break;
+    case VM_GET_SINGLETON_DATA_SIZE:{
+        printf("singlenot create\n");
+    }break;
+    case VM_SINGLETON_DATA_DELETE:{
+        printf("singlenot delete\n");
     }break;
     case VM_DRAW:{
         
@@ -44,16 +51,16 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
 
         for (unsigned int x = 0; x < glyph->bitmap.width; x++){
             for (unsigned int y = 0; y < glyph->bitmap.rows; y++){
-                glyph_data[(glyph->bitmap.rows - y - 1) * glyph->bitmap.width + x] = (SDL_Color){
-                    .r = 255,
-                    .g = 0,
-                    .b = 0,
-                    .a = glyph->bitmap.buffer[y * glyph->bitmap.width + x]
+                SDL_Color px = (SDL_Color){
+                    .r = rand() %255,
+                    .g = rand() %255,
+                    .b = rand() %255,
                 };
+                px.a = glyph->bitmap.buffer[y * glyph->bitmap.width + x];
+                glyph_data[(glyph->bitmap.rows - y - 1) * glyph->bitmap.width + x] = px;
             }
         }
         
-
         glBindTexture(GL_TEXTURE_2D, texture);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, glyph->bitmap.width, glyph->bitmap.rows, 
                                         0, GL_RGBA, GL_UNSIGNED_BYTE, glyph_data);

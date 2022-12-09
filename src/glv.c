@@ -31,6 +31,7 @@ static void __draw_views_recursive(View *view, SDL_Rect parent);
 static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context);
 static void __set_view_visibility(View *view, bool is_visible);
 static void __set_is_mouse_over(View *view, bool is_mouse_over);
+static void __unmap_child(View *child);
 
 static void __enum_delete_childs(View *child, void *unused);
 static void __enum_call_mouse_button_event(View *child, void *args_ptr);
@@ -43,6 +44,10 @@ static void __enum_call_textediting_event(View *view, void *args_ptr);
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev);
 static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev);
 static void __handle_key(View *root, ViewMsg msg, const SDL_KeyboardEvent *ev);
+
+static void *__create_singleton_data_ifnexists(GlvMgr *mgr, ViewProc proc);
+static void __delete_singletons(GlvMgr *mgr);
+static Uint32 __get_singleton_data_size(ViewProc proc);
 
 static Uint32 user_msg_first;
 
@@ -99,6 +104,7 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     result->view_proc = view_proc;
     result->user_context = user_context;
     result->is_visible = true;
+    result->singleton_data = __create_singleton_data_ifnexists(parent->mgr, view_proc);
 
     if(manage_proc == NULL) result->view_manage = __manage_default;
     else result->view_manage = manage_proc;
@@ -114,7 +120,8 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     if(result->view_data_size == 0) result->view_data = NULL;
     else result->view_data = malloc(result->view_data_size);
 
-    glv_push_event(result, VM_CREATE, NULL, 0);
+    glv_call_event(result, VM_CREATE, NULL, NULL);
+    glv_call_manage(result, VM_CREATE, NULL);
     glv_push_event(parent, VM_CHILD_CREATE, &result, sizeof(View*));
 
     return result;
@@ -131,6 +138,7 @@ void glv_delete(View *view){
     }
 
     glv_enum_childs(view, __enum_delete_childs, NULL);
+    glv_push_event(view, VM_DELETE, NULL, 0);
 
     glv_push_event(view, VM_VIEW_FREE__, NULL, 0);
 }
@@ -192,19 +200,33 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
         SDL_Delay(mgr.min_frametime_ms);
     }
 
-    glv_delete(mgr.root_view);
+    if(mgr.root_view != NULL){
+        glv_delete(mgr.root_view);
+    }
+
+    while(SDL_PollEvent(&ev)){
+        handle_events(&mgr, &ev);
+    }
+
     return delete_mgr(&mgr);
 }
 
 void *glv_get_view_data(View *view, unsigned int offset){
     if(view->view_data_size <= offset){
-        glv_log_err(glv_get_mgr(view), "get_view_data with offset out of data range");
+        char err_log[256+1];
+        snprintf(err_log, 256, "glv_get_view_data with offset out of data range, offset:%i", offset);
+        glv_log_err(glv_get_mgr(view), err_log);
         glv_quit(glv_get_mgr(view));
         return NULL;
     }
     else{
         return (char*)view->view_data + offset;
     }
+}
+
+void *glv_get_view_singleton_data(View *view){
+    SDL_assert(view != NULL);
+    return view->singleton_data;
 }
 
 void glv_push_event(View *view, ViewMsg message, void *args, uint32_t args_size){
@@ -437,6 +459,8 @@ static void create_mgr(GlvMgr *mgr){
 }
 
 static int delete_mgr(GlvMgr *mgr){
+    __delete_singletons(mgr);
+
     for(int face_id = mgr->faces_cnt - 1; face_id >= 0; face_id--){
         FT_Error err = FT_Done_Face(mgr->faces[face_id]);
         if(err){
@@ -458,7 +482,9 @@ static int delete_mgr(GlvMgr *mgr){
 }
 
 static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
-    mgr->on_sdl_event(mgr->root_view, ev, mgr->root_view->user_context);
+    if(mgr->root_view != NULL){
+        mgr->on_sdl_event(mgr->root_view, ev, mgr->root_view->user_context);
+    }
     switch (ev->type){
         case SDL_WINDOWEVENT:
             __handle_winevents(mgr, &ev->window);
@@ -562,6 +588,7 @@ static bool handle_private_message(View *view, ViewMsg message, const void *in){
     in = in;//unused
     switch (message){
     case VM_VIEW_FREE__:
+        __unmap_child(view);
         free(view->view_data);
         free(view);
         return true;
@@ -570,7 +597,7 @@ static bool handle_private_message(View *view, ViewMsg message, const void *in){
 }
 
 static unsigned int get_view_data_size(View *view){
-    unsigned int data_size;
+    Uint32 data_size = 0;
     glv_call_event(view, VM_GET_VIEW_DATA_SIZE, NULL, &data_size);
     return data_size;
 }
@@ -719,48 +746,6 @@ static bool __init_freetype2(GlvMgr *mgr){
     return true;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
     View *result = malloc(sizeof(View));
     SDL_zerop(result);
@@ -770,6 +755,7 @@ static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manag
     result->view_proc = view_proc;
     result->user_context = user_context;
     result->is_visible = true;
+    result->singleton_data = __create_singleton_data_ifnexists(mgr, view_proc);
 
     if(manage_proc == NULL) result->view_manage = __manage_default;
     else result->view_manage = manage_proc;
@@ -882,7 +868,9 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_TEXT_EDITING, "const GlvTextEditing *args", "NULL", "redirect of SDL_TEXTEDITING, requires SDL_StartTextInput");
         __DOC_CASE(VM_SET_STYLE, "const GlvSetStyle *style", "NULL", "called after glv_set_style()");
         __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs");
-        __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "unsigned int *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
+        __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "Uint32 *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data");
+        __DOC_CASE(VM_GET_SINGLETON_DATA_SIZE, "NULL", "Uint32 *data_size", "called once before first same view create to init data shared for same view data, View *view == NULL for this event");
+        __DOC_CASE(VM_SINGLETON_DATA_DELETE, "NULL", "NULL", "called once right before singletond data is destroyed, View *view == NULL for this event");
     }
 }
 
@@ -954,11 +942,37 @@ static void __set_is_mouse_over(View *view, bool is_mouse_over){
     }
 }
 
+static void __unmap_child(View *child){
+    SDL_assert(child != NULL);
+    if(child->mgr->root_view == child || child->parent == NULL) return;
+
+    View *parent = child->parent;
+
+    View **src = parent->childs;
+    View **dst = src;
+    View **end = src + parent->childs_cnt;
+    while (src != end){
+        if(*src == child){
+            src++;
+        }
+        else{
+            *dst++ = *src++;
+        }
+    }
+    parent->childs_cnt -= dst - src;
+    parent->childs = realloc(parent->childs, parent->childs_cnt * sizeof(View*));
+
+    if(dst - src > 1){
+        glv_log_err(child->mgr, "parent contains two childs with same pointer");
+    }
+}
+
 static void __enum_delete_childs(View *child, void *unused){
     unused = unused;//unused
-    glv_delete(child);
-
+    
     glv_enum_childs(child, __enum_delete_childs, unused);
+    
+    glv_delete(child);
 }
 
 static void __enum_call_mouse_button_event(View *child, void *args_ptr){
@@ -1088,4 +1102,50 @@ static void __handle_key(View *root, ViewMsg msg, const SDL_KeyboardEvent *ev){
     glv_call_manage(root, msg, &_ev.ev);
 
     glv_enum_focused_childs(root, __enum_call_key_event, &_ev);
+}
+
+static void *__create_singleton_data_ifnexists(GlvMgr *mgr, ViewProc proc){
+    SingletonData **curr = mgr->view_singleton_data;
+    SingletonData **end = curr + mgr->view_singleton_data_cnt;
+
+    while (curr != end){
+        if(curr[0]->proc == proc){
+            return (void*)&curr[0][1];
+        }
+        curr++;
+    }
+
+    Uint32 size = __get_singleton_data_size(proc);
+
+    mgr->view_singleton_data_cnt++;
+    mgr->view_singleton_data = realloc(
+        mgr->view_singleton_data,
+        mgr->view_singleton_data_cnt * sizeof(SingletonData*));
+    
+    SingletonData *data = malloc(sizeof(SingletonData) + size);
+    data->proc = proc;
+    memset(data + sizeof(SingletonData), 0, size);
+
+    mgr->view_singleton_data[mgr->view_singleton_data_cnt - 1] = data;
+    
+    return (void*)&data[1];
+}
+
+static void __delete_singletons(GlvMgr *mgr){
+    SingletonData **curr = mgr->view_singleton_data;
+    SingletonData **end = curr + mgr->view_singleton_data_cnt;
+
+    while (curr != end){
+        curr[0]->proc(NULL, VM_SINGLETON_DATA_DELETE, NULL, NULL);
+        free(curr[0]);
+        curr++;
+    }
+    free(mgr->view_singleton_data);
+    mgr->view_singleton_data = NULL;
+}
+
+static Uint32 __get_singleton_data_size(ViewProc proc){
+    Uint32 result = 0;
+    proc(NULL, VM_GET_SINGLETON_DATA_SIZE, NULL, &result);
+    return result;
 }

@@ -71,6 +71,7 @@ void glv_delete(View *view);
 void glv_proc_default(View *view, ViewMsg msg, void *in, void *out);
 int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view));
 void *glv_get_view_data(View *view, unsigned int offset);
+void *glv_get_view_singleton_data(View *view);
 
 //handles in message queue
 //copies args 
@@ -154,6 +155,11 @@ enum ViewMsg{
 
     VM_GET_DOCS,
     VM_GET_VIEW_DATA_SIZE,
+
+    //has View *view == NULL
+    VM_GET_SINGLETON_DATA_SIZE,
+    //has View *view == NULL
+    VM_SINGLETON_DATA_DELETE,
 
     //user defined events should be in range [VM_USER_FIRST; VM_USER_LAST], this count is reserved by SDL_RegisterEvents
     VM_USER_FIRST = 100,
