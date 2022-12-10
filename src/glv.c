@@ -10,6 +10,9 @@ static void unfocus_all_excepting(View *view, View *exception);
 static bool handle_private_message(View *view, ViewMsg message, const void *in);
 static unsigned int get_view_data_size(View *view);
 
+static void preprocess_message(View *view, ViewMsg msg, void *in);
+static void postprocess_message(View *view, ViewMsg msg, void *in);
+
 static void __init_draw_texture_ifninit(GlvMgr *mgr);
 static void __init_draw_texture_program(GlvMgr *mgr);
 static void __init_draw_texture_vbo(GlvMgr *mgr);
@@ -120,6 +123,7 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     result->view_data_size = get_view_data_size(result);
     if(result->view_data_size == 0) result->view_data = NULL;
     else result->view_data = malloc(result->view_data_size);
+    memset(result->view_data, 0, result->view_data_size);
 
     glv_call_event(result, VM_CREATE, NULL, NULL);
     glv_call_manage(result, VM_CREATE, NULL);
@@ -263,12 +267,14 @@ void glv_call_manage(View *view, ViewMsg message, void *event_args){
     view->view_manage(view, message, event_args, view->user_context);
 }
 
-void glv_bind_view_framebuffer(View *view){
-    glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
+GLuint glv_get_texture(View *view){
+    SDL_assert(view != NULL);
+    return view->texture;
 }
 
-GLuint glv_get_texture(View *view){
-    return view->texture;
+GLuint glv_get_framebuffer(View *view){
+    SDL_assert(view != NULL);
+    return view->framebuffer;
 }
 
 GlvMsgDocs glv_get_docs(View *view, ViewMsg message){
@@ -367,8 +373,50 @@ bool glv_is_mouse_over(View *view){
     return view->is_mouse_over;
 }
 
+bool glv_build_program_or_quit_err(GlvMgr *mgr, const char *vertex, const char *fragment, GLuint *result){
+    GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint v = glCreateShader(GL_VERTEX_SHADER);
+
+    glShaderSource(f, 1, (const GLchar**)&fragment, NULL);
+    glShaderSource(v, 1, (const GLchar**)&vertex, NULL);
+
+    glCompileShader(f);
+    glCompileShader(v);
+
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, f);
+    glAttachShader(prog, v);
+
+    glLinkProgram(prog);
+
+    glDeleteShader(f);
+    glDeleteShader(v);
+
+    GLint status;
+    glGetProgramiv(prog, GL_LINK_STATUS, &status);
+    if(status == 0){
+        char buffer[128];
+        glGetProgramInfoLog(prog, sizeof(buffer) - 1, NULL, buffer);
+        glv_log_err(mgr, buffer);
+        glDeleteProgram(prog);
+
+        *result = 0;
+
+        return false;
+    }
+    else{
+        *result = prog;
+        return true;
+    }
+}
+
 void glv_set_style(View *view, const GlvSetStyle *style){
-    glv_push_event(view, VM_SET_STYLE, (void*)style, style->self_size);
+    if(style->self_size < sizeof(GlvSetStyle)){
+        glv_log_err(glv_get_mgr(view), "glv_set_style(): required style where self_size >= sizeof(GlvSetStyle)");
+    }
+    else{
+        glv_push_event(view, VM_SET_STYLE, (void*)style, style->self_size);
+    }
 }
 
 void glv_set_secondary_focus(View *view){
@@ -411,7 +459,10 @@ void glv_set_pos(View *view, int x, int y){
         view->x = x;
         view->y = y;
 
-        SDL_Point new_pos;
+        SDL_Point new_pos = {
+            .x = x,
+            .y = y,
+        };
         glv_push_event(view, VM_MOVE, &new_pos, sizeof(new_pos));
         glv_push_event(view->parent, VM_CHILD_MOVE, &view, sizeof(View*));
         glv_redraw_window(view->mgr);
@@ -425,7 +476,10 @@ void glv_set_size(View *view, unsigned int width, unsigned int height){
     else{
         view->w = width;
         view->h = height;
-        SDL_Point new_size;
+        SDL_Point new_size = {
+            .x = width,
+            .y = height,
+        };
         glv_push_event(view, VM_RESIZE, &new_size, sizeof(new_size));
         glv_push_event(view->parent, VM_CHILD_RESIZE, &view, sizeof(View*));
         glv_redraw_window(view->mgr);
@@ -435,6 +489,11 @@ void glv_set_size(View *view, unsigned int width, unsigned int height){
 void glv_draw(View *view){
     view->is_drawable = true;
     glv_push_event(view, VM_DRAW, NULL, 0);
+    glv_redraw_window(view->mgr);
+}
+
+void glv_deny_draw(View *view){
+    view->is_drawable = false;
     glv_redraw_window(view->mgr);
 }
 
@@ -501,8 +560,12 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             if(ev->user.code < (Sint32)user_msg_first || ev->user.code > (Sint32)user_msg_first + VM_USER_LAST) break;
             const GlvSdlEvent *glv_ev = (const GlvSdlEvent*)&ev->user;
             if(!handle_private_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data)){
+                preprocess_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data);
+
                 glv_call_event(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data, NULL);
                 glv_call_manage(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data);
+                
+                postprocess_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data);
             }
             free(glv_ev->data);
         } return;
@@ -556,10 +619,8 @@ static void apply_events(GlvMgr *mgr){
         }
     
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        SDL_Point new_size;
-        SDL_GetWindowSize(mgr->window, &new_size.x, &new_size.y);
-        glViewport(0, 0, new_size.x, new_size.y);
-
+        glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
+        
         draw_views_recursive(mgr->root_view);
         SDL_GL_SwapWindow(mgr->window);
     }
@@ -568,9 +629,10 @@ static void apply_events(GlvMgr *mgr){
 static void draw_views_recursive(View *view){
     SDL_Rect parent = {
         .x = 0,
-        .y = 0
+        .y = 0,
+        .w = view->w,
+        .h = view->h
     };
-    SDL_GetWindowSize(view->mgr->window, &parent.w, &parent.h);
     
     __draw_views_recursive(view, parent);
 }
@@ -613,6 +675,25 @@ static unsigned int get_view_data_size(View *view){
     return data_size;
 }
 
+static void preprocess_message(View *view, ViewMsg msg, void *in){
+    in = in;//unused;
+    switch (msg){
+    case VM_DRAW:
+        glBindFramebuffer(GL_FRAMEBUFFER, glv_get_framebuffer(view));
+        break;
+    }
+}
+
+static void postprocess_message(View *view, ViewMsg msg, void *in){
+    view = view;//unused
+    in = in;//unused;
+    switch (msg){
+    case VM_DRAW:
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        break;
+    }
+}
+
 static void __init_draw_texture_ifninit(GlvMgr *mgr){
     if(mgr->draw_texture_program.prog == 0){
         __init_draw_texture_program(mgr);
@@ -623,38 +704,10 @@ static void __init_draw_texture_ifninit(GlvMgr *mgr){
 }
 
 static void __init_draw_texture_program(GlvMgr *mgr){
-    GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
-    GLuint v = glCreateShader(GL_VERTEX_SHADER);
-
-    glShaderSource(f, 1, (const GLchar**)&draw_texture_frag, NULL);
-    glShaderSource(v, 1, (const GLchar**)&draw_texture_vert, NULL);
-
-    glCompileShader(f);
-    glCompileShader(v);
-
-    GLuint prog = glCreateProgram();
-    glAttachShader(prog, f);
-    glAttachShader(prog, v);
-
-    glLinkProgram(prog);
-
-    glDeleteShader(f);
-    glDeleteShader(v);
-
-    GLint status;
-    glGetProgramiv(prog, GL_LINK_STATUS, &status);
-    if(status == 0){
-        glv_log_err(mgr, "cannot compile mgr.draw_texture_program");
-
-        char buffer[128];
-        glGetProgramInfoLog(prog, sizeof(buffer), NULL, buffer);
-        glv_log_err(mgr, buffer);
-        glDeleteProgram(prog);
-
-        mgr->is_running = false;
-    }
-    else{
-        mgr->draw_texture_program.prog = prog;
+    if(glv_build_program_or_quit_err(
+        mgr, draw_texture_vert, draw_texture_frag, &mgr->draw_texture_program.prog
+    ) == false){
+        glv_quit(mgr);
     }
 }
 
@@ -777,6 +830,7 @@ static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manag
     result->view_data_size = get_view_data_size(result);
     if(result->view_data_size == 0) result->view_data = NULL;
     else result->view_data = malloc(result->view_data_size);
+    memset(result->view_data, 0, result->view_data_size);
 
     glv_call_event(result, VM_CREATE, NULL, NULL);
     glv_call_manage(result, VM_CREATE, NULL);
@@ -789,7 +843,9 @@ static void __init_texture_1x1(View *view){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    SDL_Color default_pixel = {.r = 255, .g = 255,.b = 255, .a = 255};
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &default_pixel);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -799,6 +855,10 @@ static void __init_framebuffer(View *view){
     glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
     
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, view->texture, 0);
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+        glv_log_err(view->mgr, "cannot create framebuffer for view");
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -815,7 +875,7 @@ static void __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
     case SDL_WINDOWEVENT_EXPOSED:
         mgr->required_redraw = true;
         break;
-    case SDL_WINDOWEVENT_RESIZED:{
+    case SDL_WINDOWEVENT_SIZE_CHANGED:{
         SDL_Point new_size = {
             .x = mgr->root_view->w = ev->data1,
             .y = mgr->root_view->h = ev->data2,
@@ -879,10 +939,10 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_TEXT_EDITING, "const GlvTextEditing *args", "NULL", "redirect of SDL_TEXTEDITING, requires SDL_StartTextInput");
         __DOC_CASE(VM_SDL_REDIRECT, "const SDL_Event *args", "NULL", "redirect of sdl events, handles without queue");
         __DOC_CASE(VM_SET_STYLE, "const GlvSetStyle *style", "NULL", "called after glv_set_style()");
-        __DOC_CASE(VM_GET_DOCS, "NULL", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs, handles without queue");
+        __DOC_CASE(VM_GET_DOCS, "const ViewMsg *message", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs, handles without queue");
         __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "Uint32 *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data, handles without queue");
         __DOC_CASE(VM_GET_SINGLETON_DATA_SIZE, "NULL", "Uint32 *data_size", "called once before first same view create to init data shared for same view data, View *view == NULL for this event, handles without queue");
-        __DOC_CASE(VM_SINGLETON_DATA_DELETE, "NULL", "NULL", "called once right before singletond data is destroyed, View *view == NULL for this event, handles without queue");
+        __DOC_CASE(VM_SINGLETON_DATA_DELETE, "void *singleton_data", "NULL", "called once right before singletond data is destroyed, View *view == NULL for this event, handles without queue");
     }
 }
 
@@ -1154,7 +1214,7 @@ static void __delete_singletons(GlvMgr *mgr){
     SingletonData **end = curr + mgr->view_singleton_data_cnt;
 
     while (curr != end){
-        curr[0]->proc(NULL, VM_SINGLETON_DATA_DELETE, NULL, NULL);
+        curr[0]->proc(NULL, VM_SINGLETON_DATA_DELETE, &curr[0][1], NULL);
         free(curr[0]);
         curr++;
     }

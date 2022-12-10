@@ -37,6 +37,7 @@ enum GlvColorStyleType{
 typedef SDL_Color (*GlvColorInterpolate)(SDL_Color from, SDL_Color to, float progress);
 typedef union GlvColorStyle GlvColorStyle;
 typedef struct GlvGradientStop GlvGradientStop;
+typedef struct GlvSolidColor GlvSolidColor;
 typedef struct GlvLinearGradient GlvLinearGradient;
 typedef struct GlvRadialGradient GlvRadialGradient;
 
@@ -73,6 +74,8 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
 void *glv_get_view_data(View *view, unsigned int offset);
 void *glv_get_view_singleton_data(View *view);
 
+void glv_dump_texture(GlvMgr *mgr, const char *file, GLuint texture, Uint32 bmp_width, Uint32 bmp_height);
+
 //handles in message queue
 //copies args 
 //handles by manage proc
@@ -85,8 +88,8 @@ void glv_call_event(View *view, ViewMsg message, void *in, void *out);
 //handles only by manage proc
 void glv_call_manage(View *view, ViewMsg message, void *event_args);
 
-void glv_bind_view_framebuffer(View *view);
 GLuint glv_get_texture(View *view);
+GLuint glv_get_framebuffer(View *view);
 
 GlvMsgDocs glv_get_docs(View *view, ViewMsg message);
 void glv_print_docs(View *view, ViewMsg message);
@@ -99,7 +102,15 @@ void glv_set_minimal_frametime(GlvMgr *mgr, Uint32 ms_min_frametime);
 
 void glv_set_pos(View *view, int x, int y);
 void glv_set_size(View *view, unsigned int width, unsigned int height);
+
+//enables view texture drawing
+//calls VM_DRAW message end refreshes window
+//view should manually resize texture if it needed
 void glv_draw(View *view);
+
+//for disable view texture drawing
+//childs will still drawing 
+void glv_deny_draw(View *view);
 void glv_show(View *view);
 void glv_hide(View *view);
 void glv_set_focus(View *view);
@@ -110,6 +121,9 @@ View *glv_get_Parent(View *view);
 bool glv_is_focused(View *view);
 bool glv_is_visible(View *view);
 bool glv_is_mouse_over(View *view);
+
+//uses mgr only to log error
+bool glv_build_program_or_quit_err(GlvMgr *mgr, const char *vertex, const char *fragment, GLuint *result);
 
 //can be differ of GlvSetStyle, but contains GlvSetStyle in offset(0)
 void glv_set_style(View *view, const GlvSetStyle *style);
@@ -218,6 +232,14 @@ struct GlvLinearGradient{
     float angle;
 };
 
+struct GlvSolidColor{
+    GlvColorStyleType type;
+    Uint8 r;
+    Uint8 g;
+    Uint8 b;
+    Uint8 a;
+};
+
 struct GlvRadialGradient{
     GlvColorStyleType type;
     Uint32 stops_count;
@@ -228,7 +250,7 @@ struct GlvRadialGradient{
 
 union GlvColorStyle{
     GlvColorStyleType type;
-    SDL_Color solid_color;
+    GlvSolidColor solid_color;
     GlvLinearGradient linear_gradient;
     GlvRadialGradient GlvRadialGradient;
 };
@@ -242,9 +264,13 @@ struct GlvEventSetStyle{
     bool apply_fg;
     GlvColorStyle foreground;
 
-    bool apply_font;
+    bool apply_font_face;
     GlvFaceId font_face_id;
+    
+    bool apply_font_width;
     FT_UInt font_width;
+
+    bool apply_font_height;
     FT_UInt font_height;
 };
 

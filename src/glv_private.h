@@ -7,4 +7,7 @@
 #define should_redraw __glv_private_should_redraw
 #define default_on_sdl_event __glv_private_default_on_sdl_event
 
+#define draw_glyph_vert __glv_private_glyph_vert
+#define draw_glyph_frag __glv_private_glyph_frag
+
 #endif //GLV_PRIVATE_H

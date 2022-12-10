@@ -2,13 +2,11 @@
 #define _GLV_H
 
 #include <glv.h>
+#include "builtin_shaders.h"
 
 void log_printf(GlvMgr *mgr, const char *log);
 bool should_redraw(GlvMgr *mgr);
 void default_on_sdl_event(View *root, const SDL_Event *event, void *root_context);
-
-extern const char *draw_texture_vert;
-extern const char *draw_texture_frag;
 
 typedef struct SingletonData{
     ViewProc proc;

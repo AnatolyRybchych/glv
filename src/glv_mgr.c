@@ -68,8 +68,8 @@ void glv_draw_texture_mat2(GlvMgr *mgr, GLuint texture, float mvp[4*4], float te
     glBindBuffer(GL_ARRAY_BUFFER, p->coords_bo);
     glVertexAttribPointer(p->tex_coords_p, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
-    glBindTexture(GL_TEXTURE_2D, texture);
     glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(p->tex_p, 0);
 
     glUniformMatrix4fv(p->mvp_p, 1, 0, mvp);
@@ -83,6 +83,60 @@ void glv_draw_texture_mat2(GlvMgr *mgr, GLuint texture, float mvp[4*4], float te
     glDisableVertexAttribArray(p->vertex_p);
     glDisableVertexAttribArray(p->tex_coords_p);
     glUseProgram(0);
+}
+
+void glv_dump_texture(GlvMgr *mgr, const char *file, GLuint texture, Uint32 bmp_width, Uint32 bmp_height){
+    GLuint curr_fb;
+    GLuint curr_texture;
+    GLint viewport[4];
+
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, (int*)&curr_fb);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, (int*)&curr_texture);
+
+    GLuint fb_texture;
+    GLuint fb;
+
+    glGenFramebuffers(1, &fb);
+    glGenTextures(1, &fb);
+
+    glBindTexture(GL_TEXTURE_2D, fb_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bmp_width, bmp_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb_texture, 0);
+
+    glViewport(0, 0, bmp_width, bmp_height);
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+        glv_log_err(mgr, "glv_dump_texture(): framebuffer inclompleate");
+    }
+
+    float mat[16];
+    mvp_identity(mat);
+
+    glv_draw_texture_mat(mgr, texture, mat);
+
+    SDL_Color *pixels = malloc(sizeof(SDL_Color) * bmp_width * bmp_height);
+    SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(pixels, bmp_width, bmp_height, 32, bmp_width * sizeof(SDL_Color), 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+    
+    glReadPixels(0, 0, bmp_width, bmp_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    SDL_SaveBMP(surface, file);
+
+    SDL_FreeSurface(surface);
+    free(pixels);
+
+    glDeleteFramebuffers(1, &fb);
+    glDeleteTextures(1, &fb_texture);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, curr_fb);
+    glBindTexture(GL_TEXTURE_2D, curr_texture);
+
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 }
 
 void glv_draw_texture_mat(GlvMgr *mgr, GLuint texture, float mvp[4*4]){
