@@ -15,6 +15,8 @@ typedef struct Data{
     GlvColorStyle text_color;
 
     GLuint fg_texture;
+
+    SDL_Point align;
 } Data;
 
 typedef struct Singleton{
@@ -53,6 +55,7 @@ static void apply_fg(View *text_view, const GlvColorStyle *style);
 static void apply_font_face(View *text_view, GlvFontFaceId face);
 static void apply_font_width(View *text_view, Uint32 width);
 static void apply_font_height(View *text_view, Uint32 heihht);
+static void apply_align(View *text_view, SDL_Point align);
 static void set_texture_solid_color(GLuint texture, const GlvSolidColor *color);
 static void resize(View *text_view, const SDL_Point *new_size);
 
@@ -104,6 +107,10 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
         append_text(view, in);
         glv_draw(view);
         break;
+    case VM_TEXT_VIEW_SET_TEXTALIGN:{
+        apply_align(view, *(SDL_Point*)in);
+        glv_draw(view);
+    } break;
     case VM_TEXT_VIEW_GET_TEXT:
         get_text(view, out);
     break;
@@ -178,6 +185,14 @@ void glv_text_view_set_solid_foreground(View *text_view, SDL_Color color){
     glv_draw(text_view);
 }
 
+void glv_text_view_set_alignment(View *text_view, int x, int y){
+    SDL_Point p = {
+        .x = x,
+        .y = y,
+    };
+    glv_push_event(text_view, VM_TEXT_VIEW_SET_TEXTALIGN, &p, sizeof(p));
+}
+
 static void init_singleton(View *text_view){
     Singleton *singleton = glv_get_view_singleton_data(text_view);
 
@@ -218,7 +233,7 @@ static void finalize_singleton(Singleton *singleton){
 static void init_data(View *text_view){
     Data *data = glv_get_view_data(text_view, data_offset);
 
-    data->text = malloc(1);
+    data->text = malloc(2);
     data->text[0] = 0;
 
     data->text_color.solid_color = (GlvSolidColor){
@@ -232,6 +247,7 @@ static void init_data(View *text_view){
     apply_font_face(text_view, 0);
     apply_font_width(text_view, 0);
     apply_font_height(text_view, 36);
+    apply_align(text_view, (SDL_Point){-1, -1});
 }
 
 static void finalize_data(View *text_view){
@@ -317,6 +333,11 @@ static void get_docs(View *text_view, const ViewMsg *msg, GlvMsgDocs *docs){
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_GET_TEXT_PARAMS),
             "NULL", "GlvTextViewTextParams *params", "retuns text params");
         break;
+    case VM_TEXT_VIEW_SET_TEXTALIGN:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_SET_TEXTALIGN),
+            "const SDL_Point *alignment", "NULL", "set text alignment: x -> horisonta,"
+            " y -> vertical; if < 0 -> alignment begin, == 0 -> alignment center, > 0 -> alignment end");
+        break;
     default:
         parent_proc(text_view, VM_GET_DOCS, (void*)msg, docs);
         break;
@@ -372,6 +393,12 @@ static void apply_font_height(View *text_view, Uint32 height){
     data->face_height = height;
 }
 
+static void apply_align(View *text_view, SDL_Point align){
+    Data *data = glv_get_view_data(text_view, data_offset);
+
+    data->align = align;
+}
+
 static void set_texture_solid_color(GLuint texture, const GlvSolidColor *color){
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -410,9 +437,18 @@ static void render(View *text_view){
 
     glViewport(0, 0, size.x, size.y);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
     glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);  
 
-    render_text(face, data->text, (SDL_Point){0, 0}, size, singleton, data);
+    SDL_Point text_pos = {0, 0};
+
+    if(data->align.x == 0) text_pos.x = (size.x - (int)data->text_width) / 2;
+    else if(data->align.x > 0) text_pos.x = size.x - (int)data->text_width;
+
+    if(data->align.y == 0) text_pos.y = (size.y - (int)data->face_height) / 2;
+    else if(data->align.y > 0) text_pos.y = size.y - (int)data->face_height;
+
+    render_text(face, data->text, text_pos, size, singleton, data);
 
     glBlendFuncSeparate(curr_blend[0], curr_blend[1], curr_blend[2], curr_blend[3]);  
 }
@@ -477,13 +513,13 @@ static void init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const SDL_Po
         .x = (glyph_pos->x + glyph->metrics.horiBearingX / 64) 
                 / (float)viewport_size->x * 2.0 - 1.0, 
         
-        .y = (viewport_size->y - glyph_pos->y - glyph->metrics.vertAdvance / 64 - (glyph->metrics.height / 64 - glyph->metrics.horiBearingY / 64)) 
-                / (float)viewport_size->y,
+        .y = (viewport_size->y - (glyph_pos->y + (glyph->metrics.vertAdvance / 2 + glyph->metrics.height - glyph->metrics.horiBearingY) / 64)) 
+                / (float)viewport_size->y * 2.0 - 1.0,
         
-        .w = glyph->metrics.width / 32 
+        .w = glyph->bitmap.width * 2
             / (float)viewport_size->x,
         
-        .h = glyph->metrics.height / 32 
+        .h = glyph->bitmap.rows * 2
             / (float)viewport_size->y
     };
 
@@ -499,12 +535,12 @@ static Uint32 calc_text_width(View *text_view, const wchar_t *text){
     Data *data = glv_get_view_data(text_view, data_offset);
     FT_Face face = glv_get_freetype_face(glv_get_mgr(text_view), data->face);
 
-    int curr_x;
     const wchar_t *text_ptr = text;
     wchar_t curr;
 
+    int curr_x = 0;
     while ((curr = *text_ptr++) != 0){
-        FT_Load_Char(face, curr, FT_LOAD_BITMAP_METRICS_ONLY);
+        FT_Load_Char(face, curr, FT_LOAD_RENDER);
         FT_GlyphSlot glyph = face->glyph;
         curr_x += glyph->metrics.horiAdvance / 64;
     }
