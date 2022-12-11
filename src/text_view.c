@@ -6,11 +6,11 @@
 typedef struct Data{
     Uint32 text_len;
     Uint32 text_width;
-    char *text;
+    wchar_t *text;
 
     Uint32 face_width;
     Uint32 face_height;
-    GlvFaceId face;
+    GlvFontFaceId face;
 
     GlvColorStyle text_color;
 
@@ -42,15 +42,15 @@ static void finalize_data(View *text_view);
 static void init_singleton_size(Uint32 *size);
 static void init_data_size(View *view, Uint32 *size);
 
-static void set_text(View *text_view, const char *text);
-static void append_text(View *text_view, const char *text);
-static void get_text(View *text_view, const char **text);
+static void set_text(View *text_view, const wchar_t *text);
+static void append_text(View *text_view, const wchar_t *text);
+static void get_text(View *text_view, const wchar_t **text);
 static void get_text_params(View *text_view, GlvTextViewTextParams *params);
 static void get_docs(View *text_view, const ViewMsg *msg, GlvMsgDocs *docs);
 static void log_definition_error_if_exists(View *text_view);
 static void apply_style(View *text_view, const GlvSetStyle *style);
 static void apply_fg(View *text_view, const GlvColorStyle *style);
-static void apply_font_face(View *text_view, GlvFaceId face);
+static void apply_font_face(View *text_view, GlvFontFaceId face);
 static void apply_font_width(View *text_view, Uint32 width);
 static void apply_font_height(View *text_view, Uint32 heihht);
 static void set_texture_solid_color(GLuint texture, const GlvSolidColor *color);
@@ -59,7 +59,7 @@ static void resize(View *text_view, const SDL_Point *new_size);
 static void render(View *text_view);
 static void render_text(FT_Face face, const wchar_t *text, SDL_Point pos, SDL_Point viewport_size, Singleton *singleton, Data *data);
 static void init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const SDL_Point *glyph_pos, const SDL_Point *viewport_size);
-static Uint32 calc_text_width(View *text_view, const char *text);
+static Uint32 calc_text_width(View *text_view, const wchar_t *text);
 
 
 ViewProc glv_text_view_proc = view_proc;
@@ -119,24 +119,24 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
     }
 }
 
-void glv_text_view_set_text(View *text_view, const char *text){
+void glv_text_view_set_text(View *text_view, const wchar_t *text){
     SDL_assert(text_view != NULL);
     SDL_assert(text != NULL);
 
-    glv_push_event(text_view, VM_TEXT_VIEW_SET_TEXT, (void*)text, strlen(text) + 1);
+    glv_push_event(text_view, VM_TEXT_VIEW_SET_TEXT, (void*)text, sizeof(wchar_t) * (wcslen(text) + 1));
 }
 
-void glv_text_view_append_text(View *text_view, const char *text){
+void glv_text_view_append_text(View *text_view, const wchar_t *text){
     SDL_assert(text_view != NULL);
     SDL_assert(text != NULL);
 
-    glv_push_event(text_view, VM_TEXT_VIEW_APPEND_TEXT, (void*)text, strlen(text) + 1);
+    glv_push_event(text_view, VM_TEXT_VIEW_APPEND_TEXT, (void*)text, sizeof(wchar_t) * (wcslen(text) + 1));
 }
 
-const char *glv_text_view_get_text(View *text_view){
+const wchar_t *glv_text_view_get_text(View *text_view){
     SDL_assert(text_view != NULL);
 
-    char **text = NULL;
+    wchar_t **text = NULL;
     glv_call_event(text_view, VM_TEXT_VIEW_GET_TEXT, NULL, text);
     return *text;
 }
@@ -147,6 +147,35 @@ GlvTextViewTextParams glv_text_view_get_text_params(View *text_view){
     GlvTextViewTextParams result;
     glv_call_event(text_view, VM_TEXT_VIEW_GET_TEXT_PARAMS, NULL, &result);
     return result;
+}
+
+void glv_text_view_set_font_faceid(View *text_view, GlvFontFaceId face){
+    apply_font_face(text_view, face);
+    glv_draw(text_view);
+}
+
+void glv_text_view_set_font_width(View *text_view, Uint32 width){
+    apply_font_width(text_view, width);
+    glv_draw(text_view);
+}
+
+void glv_text_view_set_font_height(View *text_view, Uint32 height){
+    apply_font_height(text_view, height);
+    glv_draw(text_view);
+}
+
+void glv_text_view_set_solid_foreground(View *text_view, SDL_Color color){
+    GlvColorStyle style = {
+        .solid_color = {
+            .type = GLV_COLORSTYLE_SOLID,
+            .r = color.r,
+            .g = color.g,
+            .b = color.b,
+            .a = color.a,
+        },
+    };
+    apply_fg(text_view, &style);
+    glv_draw(text_view);
 }
 
 static void init_singleton(View *text_view){
@@ -222,12 +251,12 @@ static void init_data_size(View *view, Uint32 *size){
     *size += sizeof(Data);
 }
 
-static void set_text(View *text_view, const char *text){
+static void set_text(View *text_view, const wchar_t *text){
     Data *data = glv_get_view_data(text_view, data_offset);
 
-    if(text == NULL) text = "";
-    data->text_len = strlen(text);
-    Uint32 text_size = data->text_len + 1;
+    if(text == NULL) text = L"";
+    data->text_len = wcslen(text);
+    Uint32 text_size = (data->text_len + 1) * sizeof(wchar_t);
 
     free(data->text);
     data->text = malloc(text_size);
@@ -236,23 +265,23 @@ static void set_text(View *text_view, const char *text){
     data->text_width = calc_text_width(text_view, text);
 }
 
-static void append_text(View *text_view, const char *text){
+static void append_text(View *text_view, const wchar_t *text){
     Data *data = glv_get_view_data(text_view, data_offset);
 
-    if(text == NULL) text = "";
-    Uint32 append_len = strlen(text);
-    Uint32 append_size = append_len + 1;
+    if(text == NULL) text = L"";
+    Uint32 append_len = wcslen(text);
+    Uint32 append_size = (append_len + 1) * sizeof(wchar_t);
 
     data->text = realloc(
         data->text,
-        data->text_len + append_size
+        data->text_len + append_len
     );
     memcpy(data->text + data->text_len, text, append_size);
 
     data->text_width = calc_text_width(text_view, text);
 }
 
-static void get_text(View *text_view, const char **text){
+static void get_text(View *text_view, const wchar_t **text){
     Data *data = glv_get_view_data(text_view, data_offset);
     *text = data->text;
 }
@@ -274,15 +303,15 @@ static void get_docs(View *text_view, const ViewMsg *msg, GlvMsgDocs *docs){
     switch (*msg){
     case VM_TEXT_VIEW_SET_TEXT:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_SET_TEXT),
-            "const char *text", "NULL", "sets the text");
+            "const wchar_t *text", "NULL", "sets the text");
         break;
     case VM_TEXT_VIEW_APPEND_TEXT:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_APPEND_TEXT),
-            "const char *text", "NULL", "appends the text");
+            "const wchar_t *text", "NULL", "appends the text");
         break;
     case VM_TEXT_VIEW_GET_TEXT:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_GET_TEXT),
-            "NULL", "const char **text", "retuns text but doenst losts ownership");
+            "NULL", "const wchar_t **text", "retuns text but doenst losts ownership");
         break;
     case VM_TEXT_VIEW_GET_TEXT_PARAMS:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_GET_TEXT_PARAMS),
@@ -325,7 +354,7 @@ static void apply_fg(View *text_view, const GlvColorStyle *style){
     }
 }
 
-static void apply_font_face(View *text_view, GlvFaceId face){
+static void apply_font_face(View *text_view, GlvFontFaceId face){
     Data *data = glv_get_view_data(text_view, data_offset);
 
     data->face = face;
@@ -383,7 +412,7 @@ static void render(View *text_view){
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);  
 
-    render_text(face, L"Text", (SDL_Point){0, 0}, size, singleton, data);
+    render_text(face, data->text, (SDL_Point){0, 0}, size, singleton, data);
 
     glBlendFuncSeparate(curr_blend[0], curr_blend[1], curr_blend[2], curr_blend[3]);  
 }
@@ -466,13 +495,13 @@ static void init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const SDL_Po
     memcpy(vbo, result, sizeof(result));
 }
 
-static Uint32 calc_text_width(View *text_view, const char *text){
+static Uint32 calc_text_width(View *text_view, const wchar_t *text){
     Data *data = glv_get_view_data(text_view, data_offset);
     FT_Face face = glv_get_freetype_face(glv_get_mgr(text_view), data->face);
 
     int curr_x;
-    const char *text_ptr = text;
-    char curr;
+    const wchar_t *text_ptr = text;
+    wchar_t curr;
 
     while ((curr = *text_ptr++) != 0){
         FT_Load_Char(face, curr, FT_LOAD_BITMAP_METRICS_ONLY);

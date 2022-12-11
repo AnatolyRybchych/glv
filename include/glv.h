@@ -14,7 +14,7 @@ typedef struct GlvMgr GlvMgr;
 typedef struct View View;
 
 typedef unsigned int ViewMsg;
-typedef int GlvFaceId;
+typedef int GlvFontFaceId;
 typedef void (*ViewProc)(View *view, ViewMsg msg, void *in, void *out);
 typedef void (*ViewManage)(View *view, ViewMsg msg, void *event_args, void *user_context);
 
@@ -53,11 +53,11 @@ GlvMgr *glv_get_mgr(View *view);
     SDL_Window *glv_get_window(GlvMgr *mgr);
 
     //returns -1 if error
-    GlvFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index);
+    GlvFontFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index);
 
     //returns -1 if error
-    GlvFaceId glv_new_freetype_face_mem(GlvMgr *mgr, const void *data, FT_Long data_size, FT_Long face_index);
-    FT_Face glv_get_freetype_face(GlvMgr *mgr, GlvFaceId id);
+    GlvFontFaceId glv_new_freetype_face_mem(GlvMgr *mgr, const void *data, FT_Long data_size, FT_Long face_index);
+    FT_Face glv_get_freetype_face(GlvMgr *mgr, GlvFontFaceId id);
 
     //SDL_USEREVENT some events are reserved by SDL_RegisterEvents() 
     void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, const SDL_Event *event, void *root_context));
@@ -265,8 +265,8 @@ struct GlvEventSetStyle{
     GlvColorStyle foreground;
 
     bool apply_font_face;
-    GlvFaceId font_face_id;
-    
+    GlvFontFaceId font_face_id;
+
     bool apply_font_width;
     FT_UInt font_width;
 

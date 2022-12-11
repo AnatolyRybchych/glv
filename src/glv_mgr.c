@@ -199,7 +199,7 @@ SDL_Window *glv_get_window(GlvMgr *mgr){
     return mgr->window;
 }
 
-GlvFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index){
+GlvFontFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index){
     SDL_assert(mgr != NULL);
     SDL_assert(filepath != NULL);
 
@@ -220,7 +220,7 @@ GlvFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_
     return mgr->faces_cnt - 1;
 }
 
-GlvFaceId glv_new_freetype_face_mem(GlvMgr *mgr, const void *data, FT_Long data_size, FT_Long face_index){
+GlvFontFaceId glv_new_freetype_face_mem(GlvMgr *mgr, const void *data, FT_Long data_size, FT_Long face_index){
     SDL_assert(mgr != NULL);
     SDL_assert(data != NULL);
 
@@ -239,7 +239,7 @@ GlvFaceId glv_new_freetype_face_mem(GlvMgr *mgr, const void *data, FT_Long data_
     return mgr->faces_cnt - 1;
 }
 
-FT_Face glv_get_freetype_face(GlvMgr *mgr, GlvFaceId id){
+FT_Face glv_get_freetype_face(GlvMgr *mgr, GlvFontFaceId id){
     SDL_assert(mgr != NULL);
 
     if(mgr->faces_cnt == 0){
@@ -254,7 +254,7 @@ FT_Face glv_get_freetype_face(GlvMgr *mgr, GlvFaceId id){
         return NULL;
     }
     
-    GlvFaceId id_to_return = id;
+    GlvFontFaceId id_to_return = id;
 
     if((Uint32)id >= mgr->faces_cnt){
         id_to_return = mgr->faces_cnt - 1;
