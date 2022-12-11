@@ -78,6 +78,8 @@ struct View{
 
     GLuint framebuffer;
     GLuint texture;
+    GLuint bg_tex;
+    GLuint fg_tex;
 
     void *singleton_data;
 

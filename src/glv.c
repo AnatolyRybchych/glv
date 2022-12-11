@@ -150,6 +150,9 @@ void glv_delete(View *view){
         glv_push_event(view->parent, VM_CHILD_DELETE, &view, sizeof(View*));
     }
 
+    glDeleteTextures(1, &view->bg_tex);
+    glDeleteTextures(1, &view->fg_tex);
+
     glv_enum_childs(view, __enum_delete_childs, NULL);
     glv_push_event(view, VM_DELETE, NULL, 0);
 
@@ -456,17 +459,6 @@ bool glv_build_program_or_quit_err(GlvMgr *mgr, const char *vertex, const char *
     }
 }
 
-void glv_set_style(View *view, const GlvSetStyle *style){
-    SDL_assert(view != NULL);
-
-    if(style->self_size < sizeof(GlvSetStyle)){
-        glv_log_err(glv_get_mgr(view), "glv_set_style(): required style where self_size >= sizeof(GlvSetStyle)");
-    }
-    else{
-        glv_push_event(view, VM_SET_STYLE, (void*)style, style->self_size);
-    }
-}
-
 void glv_set_secondary_focus(View *view){
     
     if(view == NULL) return;
@@ -490,6 +482,8 @@ void glv_unset_secondary_focus(View *view){
 }
 
 GLuint glv_swap_texture(View *view, GLuint texture){
+    SDL_assert(view != NULL);
+
     GLuint prev = view->texture;
     view->texture = texture;
 
@@ -498,6 +492,75 @@ GLuint glv_swap_texture(View *view, GLuint texture){
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return prev;
+}
+
+void glv_set_background(View *view, GLuint texture){
+    SDL_assert(view != NULL);
+
+    glDeleteTextures(1, &view->bg_tex);
+    view->bg_tex = texture;
+
+    glv_push_event(view, VM_SET_BG, &texture, sizeof(texture));
+}
+
+
+void glv_set_foreground(View *view, GLuint texture){
+    SDL_assert(view != NULL);
+
+    glDeleteTextures(1, &view->fg_tex);
+    view->fg_tex = texture;
+
+    glv_push_event(view, VM_SET_FG, &texture, sizeof(texture));
+}
+
+GLuint glv_get_bg_texture(View *view){
+    SDL_assert(view != NULL);
+
+    return view->bg_tex;
+}
+
+GLuint glv_get_fg_texture(View *view){
+    SDL_assert(view != NULL);
+
+    return view->fg_tex;
+}
+
+GLuint gen_texture_silid_color(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
+    SDL_Color color = {
+        .r = r,
+        .g = g,
+        .b = b,
+        .a = a,
+    };
+
+    GLuint result;
+    glGenTextures(1, &result);
+    glBindTexture(GL_TEXTURE_2D, result);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &color);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return result;
+}
+
+void glv_set_font(View *view, GlvFontFaceId font_face){
+    SDL_assert(view != NULL);
+
+    glv_push_event(view, VM_SET_FONT, &font_face, sizeof(font_face));
+}
+
+void glv_set_font_width(View *view, Uint32 font_width){
+    SDL_assert(view != NULL);
+
+    glv_push_event(view, VM_SET_FONT_WIDTH, &font_width, sizeof(font_width));
+}
+
+void glv_set_font_height(View *view, Uint32 font_height){
+    SDL_assert(view != NULL);
+
+    glv_push_event(view, VM_SET_FONT_HEIGHT, &font_height, sizeof(font_height));
 }
 
 void glv_print_docs(View *view, ViewMsg message){
@@ -1019,7 +1082,11 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_TEXT, "const char *", "NULL", "calls on text input if glv_is_focused(view)");
         __DOC_CASE(VM_TEXT_EDITING, "const GlvTextEditing *args", "NULL", "redirect of SDL_TEXTEDITING, requires SDL_StartTextInput");
         __DOC_CASE(VM_SDL_REDIRECT, "const SDL_Event *args", "NULL", "redirect of sdl events, handles without queue");
-        __DOC_CASE(VM_SET_STYLE, "const GlvSetStyle *style", "NULL", "called after glv_set_style()");
+        __DOC_CASE(VM_SET_BG, "const GLuint *background_texture", "NULL", "called after setting background, input parameter is already bounded to view, view should manage redrawing manually");
+        __DOC_CASE(VM_SET_FG, "const GLuint *foreground_texture", "NULL", "called after setting foreground, input parameter is already bounded to view, view should manage redrawing manually");
+        __DOC_CASE(VM_SET_FONT, "const GlvFontFaceId *face_id", "NULL", "called after setting face input, view should manage redrawing manually");
+        __DOC_CASE(VM_SET_FONT_WIDTH, "const Uint32 *font width", "NULL", "called after setting font width, view should manage redrawing manually");
+        __DOC_CASE(VM_SET_FONT_HEIGHT, "const Uint32 *font height", "NULL", "called after setting font heaight, view should manage redrawing manually");
         __DOC_CASE(VM_GET_DOCS, "const ViewMsg *message", "GlvMsgDocs *docs", "called on glv_get_docs or glv_print_docs, handles without queue");
         __DOC_CASE(VM_GET_VIEW_DATA_SIZE, "NULL", "Uint32 *data_size", "called after CREATE to get view extra data size, data can be used via get_view_data, handles without queue");
         __DOC_CASE(VM_GET_SINGLETON_DATA_SIZE, "NULL", "Uint32 *data_size", "called once before first same view create to init data shared for same view data, View *view == NULL for this event, handles without queue");

@@ -12,10 +12,6 @@ typedef struct Data{
     Uint32 face_height;
     GlvFontFaceId face;
 
-    GlvColorStyle text_color;
-
-    GLuint fg_texture;
-
     SDL_Point align;
 } Data;
 
@@ -50,20 +46,18 @@ static void get_text(View *text_view, const wchar_t **text);
 static void get_text_params(View *text_view, GlvTextViewTextParams *params);
 static void get_docs(View *text_view, const ViewMsg *msg, GlvMsgDocs *docs);
 static void log_definition_error_if_exists(View *text_view);
-static void apply_style(View *text_view, const GlvSetStyle *style);
-static void apply_fg(View *text_view, const GlvColorStyle *style);
-static void apply_font_face(View *text_view, GlvFontFaceId face);
-static void apply_font_width(View *text_view, Uint32 width);
-static void apply_font_height(View *text_view, Uint32 heihht);
 static void apply_align(View *text_view, SDL_Point align);
-static void set_texture_solid_color(GLuint texture, const GlvSolidColor *color);
 static void resize(View *text_view, const SDL_Point *new_size);
 static void normalize(View *text_view, bool move);
 static void render(View *text_view);
-static void render_text(FT_Face face, const wchar_t *text, SDL_Point pos, SDL_Point viewport_size, Singleton *singleton, Data *data);
+static void render_text(FT_Face face, const wchar_t *text, SDL_Point pos, SDL_Point viewport_size, Singleton *singleton, GLuint fg);
 static void init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const SDL_Point *glyph_pos, const SDL_Point *viewport_size);
 static Uint32 calc_text_width(View *text_view, const wchar_t *text);
 static SDL_Point get_text_pos(View *text_view);
+
+static void apply_face(View *text_view, const GlvFontFaceId *faceid);
+static void apply_font_width(View *text_view, const Uint32 *width);
+static void apply_font_height(View *text_view, const Uint32 *height);
 
 ViewProc glv_text_view_proc = view_proc;
 static Uint32 data_offset;
@@ -76,8 +70,22 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
         init_data(view);
         glv_draw(view);
         break;
-    case VM_SET_STYLE:{
-        apply_style(view, in);
+    case VM_SET_FG:{
+        glv_draw(view);
+    }break;
+    case VM_SET_BG:{
+        glv_draw(view);
+    }break;
+    case VM_SET_FONT:{
+        apply_face(view, in);
+        glv_draw(view);
+    }break;
+    case VM_SET_FONT_WIDTH:{
+        apply_font_width(view, in);
+        glv_draw(view);
+    }break;
+    case VM_SET_FONT_HEIGHT:{
+        apply_font_height(view, in);
         glv_draw(view);
     }break;
     case VM_GET_VIEW_DATA_SIZE: 
@@ -113,7 +121,6 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
     } break;
     case VM_TEXT_VIEW_NORMALIZE:{
         normalize(view, *(bool*)in);
-        glv_draw(view);
     } break;
     case VM_TEXT_VIEW_GET_TEXT:
         get_text(view, out);
@@ -158,43 +165,6 @@ GlvTextViewTextParams glv_text_view_get_text_params(View *text_view){
     GlvTextViewTextParams result;
     glv_call_event(text_view, VM_TEXT_VIEW_GET_TEXT_PARAMS, NULL, &result);
     return result;
-}
-
-void glv_text_view_set_font_faceid(View *text_view, GlvFontFaceId face){
-    SDL_assert(text_view != NULL);
-
-    apply_font_face(text_view, face);
-    glv_draw(text_view);
-}
-
-void glv_text_view_set_font_width(View *text_view, Uint32 width){
-    SDL_assert(text_view != NULL);
-
-    apply_font_width(text_view, width);
-    glv_draw(text_view);
-}
-
-void glv_text_view_set_font_height(View *text_view, Uint32 height){
-    SDL_assert(text_view != NULL);
-
-    apply_font_height(text_view, height);
-    glv_draw(text_view);
-}
-
-void glv_text_view_set_solid_foreground(View *text_view, SDL_Color color){
-    SDL_assert(text_view != NULL);
-
-    GlvColorStyle style = {
-        .solid_color = {
-            .type = GLV_COLORSTYLE_SOLID,
-            .r = color.r,
-            .g = color.g,
-            .b = color.b,
-            .a = color.a,
-        },
-    };
-    apply_fg(text_view, &style);
-    glv_draw(text_view);
 }
 
 void glv_text_view_set_alignment(View *text_view, int x, int y){
@@ -256,25 +226,14 @@ static void init_data(View *text_view){
     data->text = malloc(2);
     data->text[0] = 0;
 
-    data->text_color.solid_color = (GlvSolidColor){
-        .type = GLV_COLORSTYLE_SOLID,
-        .r = 0, .g = 0, .b = 0, .a = 255,
-    };
-
-    glGenTextures(1, &data->fg_texture);
-
-    apply_fg(text_view, &data->text_color);
-    apply_font_face(text_view, 0);
-    apply_font_width(text_view, 0);
-    apply_font_height(text_view, 36);
-    apply_align(text_view, (SDL_Point){-1, -1});
+    data->face = 0;
+    data->face_width = 0;
+    data->face_height = 36;
 }
 
 static void finalize_data(View *text_view){
     Data *data = glv_get_view_data(text_view, data_offset);
     free(data->text);
-
-    glDeleteTextures(1, &data->fg_texture);
 }
 
 static void init_singleton_size(Uint32 *size){
@@ -326,7 +285,6 @@ static void get_text_params(View *text_view, GlvTextViewTextParams *params){
     Data *data = glv_get_view_data(text_view, data_offset);
 
     *params = (GlvTextViewTextParams){
-        .text_color = data->text_color,
         .font_face_id = data->face,
         .text_len = data->text_len,
         .face_height = data->face_height,
@@ -378,60 +336,10 @@ static void log_definition_error_if_exists(View *text_view){
     }
 }
 
-static void apply_style(View *text_view, const GlvSetStyle *style){
-    if(style->apply_fg)
-        apply_fg(text_view, &style->foreground);
-    if(style->apply_font_face)
-        apply_font_face(text_view, style->font_face_id);
-    if(style->apply_font_width)
-        apply_font_width(text_view, style->font_width);
-    if(style->apply_font_height)
-        apply_font_height(text_view, style->font_height);
-}
-
-static void apply_fg(View *text_view, const GlvColorStyle *style){
-    Data *data = glv_get_view_data(text_view, data_offset);
-
-    if(style->type == GLV_COLORSTYLE_SOLID)
-        set_texture_solid_color(data->fg_texture, &style->solid_color);
-    else {
-        glv_log_err(glv_get_mgr(text_view), "text_view: unimplemented forefround style");
-    }
-}
-
-static void apply_font_face(View *text_view, GlvFontFaceId face){
-    Data *data = glv_get_view_data(text_view, data_offset);
-
-    data->face = face;
-}
-
-static void apply_font_width(View *text_view, Uint32 width){
-    Data *data = glv_get_view_data(text_view, data_offset);
-
-    data->face_width = width;
-}
-
-static void apply_font_height(View *text_view, Uint32 height){
-    Data *data = glv_get_view_data(text_view, data_offset);
-
-    data->face_height = height;
-}
-
 static void apply_align(View *text_view, SDL_Point align){
     Data *data = glv_get_view_data(text_view, data_offset);
 
     data->align = align;
-}
-
-static void set_texture_solid_color(GLuint texture, const GlvSolidColor *color){
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    SDL_Color c = { .r = color->r, .g = color->g, .b = color->b, .a = color->a};
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &c);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 static void resize(View *text_view, const SDL_Point *new_size){
@@ -463,6 +371,9 @@ static void render(View *text_view){
     Singleton *singleton = glv_get_view_singleton_data(text_view);
     Data *data = glv_get_view_data(text_view, data_offset);
 
+    GLuint fg_texture = glv_get_fg_texture(text_view);
+    GLuint bg_texture = glv_get_bg_texture(text_view);
+
     FT_Face face = glv_get_freetype_face(mgr, 0);
     FT_Set_Pixel_Sizes(face, data->face_width, data->face_height);
 
@@ -471,20 +382,33 @@ static void render(View *text_view){
     glGetIntegerv(GL_BLEND_DST_RGB, curr_blend + 1);
     glGetIntegerv(GL_BLEND_SRC_ALPHA, curr_blend + 2);
     glGetIntegerv(GL_BLEND_DST_ALPHA, curr_blend + 3);
-
+    
     glViewport(0, 0, size.x, size.y);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);  
+
+    if(bg_texture != 0){
+        float mat[16];
+        mvp_identity(mat);
+        
+        glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);  
+        glv_draw_texture_mat(mgr, bg_texture, mat);
+        
+    }
+    else{
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_DST_ALPHA, GL_SRC_ALPHA, GL_DST_ALPHA);  
+    
 
     SDL_Point text_pos = get_text_pos(text_view);
 
-    render_text(face, data->text, text_pos, size, singleton, data);
+    render_text(face, data->text, text_pos, size, singleton, fg_texture);
 
     glBlendFuncSeparate(curr_blend[0], curr_blend[1], curr_blend[2], curr_blend[3]);  
 }
 
-static void render_text(FT_Face face, const wchar_t *text, SDL_Point pos, SDL_Point viewport_size, Singleton *singleton, Data *data){
+static void render_text(FT_Face face, const wchar_t *text, SDL_Point pos, SDL_Point viewport_size, Singleton *singleton, GLuint fg_texture){
     static float glyph_coords[] = {
         0,0, 1,0, 0, 1,
         1,1, 1,0, 0, 1,};
@@ -497,7 +421,7 @@ static void render_text(FT_Face face, const wchar_t *text, SDL_Point pos, SDL_Po
     glUseProgram(singleton->prog_render_glyph);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, data->fg_texture);
+    glBindTexture(GL_TEXTURE_2D, fg_texture);
     glUniform1i(singleton->loc_tex, 0);
 
     while (*text){
@@ -591,4 +515,22 @@ static SDL_Point get_text_pos(View *text_view){
     else if(data->align.y > 0) text_pos.y = size.y - (int)data->face_height;
 
     return text_pos;
+}
+
+static void apply_face(View *text_view, const GlvFontFaceId *faceid){
+    Data *data = glv_get_view_data(text_view, data_offset);
+
+    data->face = *faceid;
+}
+
+static void apply_font_width(View *text_view, const Uint32 *width){
+    Data *data = glv_get_view_data(text_view, data_offset);
+
+    data->face_width = *width;
+}
+
+static void apply_font_height(View *text_view, const Uint32 *height){
+    Data *data = glv_get_view_data(text_view, data_offset);
+
+    data->face_height = *height;
 }

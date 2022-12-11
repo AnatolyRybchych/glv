@@ -8,8 +8,6 @@
 #include <stdbool.h>
 #include <mvp.h>
 
-#define GLV_GRADIENT_STOPS_MAX 5
-
 typedef struct GlvMgr GlvMgr;
 typedef struct View View;
 
@@ -26,20 +24,6 @@ typedef struct GlvEventMouseMove GlvMouseMove;
 typedef struct GlvEventKey GlvKeyUp;
 typedef struct GlvEventKey GlvKeyDown;
 typedef struct GlvEventTextEditing GlvTextEditing;
-typedef struct GlvEventSetStyle GlvSetStyle;
-
-typedef Uint32 GlvColorStyleType;
-enum GlvColorStyleType{
-    GLV_COLORSTYLE_SOLID,
-    GLV_COLORSTYLE_LINEAR_GRADIENT,
-    GLV_COLORSTYLE_RADIAL_GRADIENT,
-};
-typedef SDL_Color (*GlvColorInterpolate)(SDL_Color from, SDL_Color to, float progress);
-typedef union GlvColorStyle GlvColorStyle;
-typedef struct GlvGradientStop GlvGradientStop;
-typedef struct GlvSolidColor GlvSolidColor;
-typedef struct GlvLinearGradient GlvLinearGradient;
-typedef struct GlvRadialGradient GlvRadialGradient;
 
 GlvMgr *glv_get_mgr(View *view);
     void glv_set_error_logger(GlvMgr *mgr, void (*logger_proc)(GlvMgr *mgr, const char *err));
@@ -202,10 +186,6 @@ bool glv_is_mouse_over(View *view);
 //mgr used only to log error
 bool glv_build_program_or_quit_err(GlvMgr *mgr, const char *vertex, const char *fragment, GLuint *result);
 
-//set bounch of styles 
-//style can be differ of GlvSetStyle, but contains GlvSetStyle in offset(0)
-void glv_set_style(View *view, const GlvSetStyle *style);
-
 //take focus witout unfocusing others
 //nice to be used in VM_UNFOCUS message to views that required to capture all keyboard events
 void glv_set_secondary_focus(View *view);
@@ -218,6 +198,36 @@ void glv_unset_secondary_focus(View *view);
 //previous texture is not more manage by mgr, resources should be disposed by glDeleteTextures() 
 //makes view as drawable but VM_DRAW message will not sent
 GLuint glv_swap_texture(View *view, GLuint texture);
+
+//set view backgound unsing texture, view take ownership over texture
+//doesnt makes view drawable, view should manage this manually
+void glv_set_background(View *view, GLuint texture);
+
+//set view foreground unsing texture, view take ownership over texture
+//doesnt makes view drawable, view should manage this manually
+void glv_set_foreground(View *view, GLuint texture);
+
+//set view font
+//doesnt makes view drawable, view should manage this manually
+void glv_set_font(View *view, GlvFontFaceId font_face);
+
+//set view font with
+//doesnt makes view drawable, view should manage this manually
+void glv_set_font_width(View *view, Uint32 font_width);
+
+//set view font height
+//doesnt makes view drawable, view should manage this manually
+void glv_set_font_height(View *view, Uint32 font_height);
+
+//returns current bg texture
+//doesnt makes view drawable, view should manage this manually
+GLuint glv_get_bg_texture(View *view);
+
+//returns current fg texture
+//doesnt makes view drawable, view should manage this manually
+GLuint glv_get_fg_texture(View *view);
+
+GLuint gen_texture_silid_color(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
 //use glv_get_docs or glv_print_docs to see details
 //inherited views should implement docs for own messages and redirect procedure for others  
@@ -256,7 +266,11 @@ enum ViewMsg{
 
     VM_SDL_REDIRECT,
 
-    VM_SET_STYLE,
+    VM_SET_BG,
+    VM_SET_FG,
+    VM_SET_FONT,
+    VM_SET_FONT_WIDTH,
+    VM_SET_FONT_HEIGHT,
 
     VM_GET_DOCS,
     VM_GET_VIEW_DATA_SIZE,
@@ -308,59 +322,5 @@ struct GlvEventTextEditing{
     int selection_len;
 };
 
-struct GlvGradientStop {
-    float progress;
-    SDL_Color color;
-};
-
-struct GlvLinearGradient{
-    GlvColorStyleType type;
-    Uint32 stops_count;
-    GlvGradientStop stops[GLV_GRADIENT_STOPS_MAX];
-    GlvColorInterpolate stops_interpolate;
-    float angle;
-};
-
-struct GlvSolidColor{
-    GlvColorStyleType type;
-    Uint8 r;
-    Uint8 g;
-    Uint8 b;
-    Uint8 a;
-};
-
-struct GlvRadialGradient{
-    GlvColorStyleType type;
-    Uint32 stops_count;
-    GlvGradientStop stops[GLV_GRADIENT_STOPS_MAX];
-    GlvColorInterpolate stops_interpolate;
-    float angle;
-};
-
-union GlvColorStyle{
-    GlvColorStyleType type;
-    GlvSolidColor solid_color;
-    GlvLinearGradient linear_gradient;
-    GlvRadialGradient GlvRadialGradient;
-};
-
-struct GlvEventSetStyle{
-    Uint32 self_size;
-
-    bool apply_bg;
-    GlvColorStyle background;
-
-    bool apply_fg;
-    GlvColorStyle foreground;
-
-    bool apply_font_face;
-    GlvFontFaceId font_face_id;
-
-    bool apply_font_width;
-    FT_UInt font_width;
-
-    bool apply_font_height;
-    FT_UInt font_height;
-};
 
 #endif //GLV_H

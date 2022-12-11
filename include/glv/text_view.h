@@ -10,6 +10,7 @@
 #define VM_TEXT_VIEW_SET_TEXTALIGN VM_USER_FIRST + 4
 #define VM_TEXT_VIEW_NORMALIZE VM_USER_FIRST + 5
 
+//if background is 0, background is complitely transparent
 extern ViewProc glv_text_view_proc;
 
 typedef struct GlvTextViewTextParams GlvTextViewTextParams;
@@ -18,10 +19,6 @@ void glv_text_view_set_text(View *text_view, const wchar_t *text);
 void glv_text_view_append_text(View *text_view, const wchar_t *text);
 const wchar_t *glv_text_view_get_text(View *text_view);
 GlvTextViewTextParams glv_text_view_get_text_params(View *text_view);
-void glv_text_view_set_font_faceid(View *text_view, GlvFontFaceId face);
-void glv_text_view_set_font_width(View *text_view, Uint32 width);
-void glv_text_view_set_font_height(View *text_view, Uint32 height);
-void glv_text_view_set_solid_foreground(View *text_view, SDL_Color color);
 
 //if alignment is < 0 -> alignment begin
 //if alignment is == 0 -> alignment center
@@ -38,8 +35,6 @@ struct GlvTextViewTextParams{
 
     Uint32 face_width;
     Uint32 face_height;
-
-    GlvColorStyle text_color;
 
     Uint32 text_len;
     Uint32 text_width;
