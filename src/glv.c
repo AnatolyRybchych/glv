@@ -489,6 +489,17 @@ void glv_unset_secondary_focus(View *view){
     unfocus_all_excepting(view, NULL);
 }
 
+GLuint glv_swap_texture(View *view, GLuint texture){
+    GLuint prev = view->texture;
+    view->texture = texture;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_BUFFER_BIT, GL_TEXTURE_2D, texture, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return prev;
+}
+
 void glv_print_docs(View *view, ViewMsg message){
     GlvMsgDocs docs = glv_get_docs(view, message);
 

@@ -213,6 +213,12 @@ void glv_set_secondary_focus(View *view);
 //remove only view focus and recursive childs
 void glv_unset_secondary_focus(View *view);
 
+//swap view texture with texture
+//returns previous view texture
+//previous texture is not more manage by mgr, resources should be disposed by glDeleteTextures() 
+//makes view as drawable but VM_DRAW message will not sent
+GLuint glv_swap_texture(View *view, GLuint texture);
+
 //use glv_get_docs or glv_print_docs to see details
 //inherited views should implement docs for own messages and redirect procedure for others  
 enum ViewMsg{
