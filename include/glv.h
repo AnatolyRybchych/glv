@@ -108,7 +108,7 @@ void glv_delete(View *view);
 void glv_proc_default(View *view, ViewMsg msg, void *in, void *out);
 
 //run window with root view
-int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view));
+int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view, void *root_context));
 
 //returns view data that have size, defined in VM_GET_VIEW_DATA_SIZE
 void *glv_get_view_data(View *view, unsigned int offset);

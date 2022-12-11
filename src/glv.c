@@ -173,7 +173,7 @@ void glv_proc_default(View *view, ViewMsg msg, void *in, void *out){
     }
 }
 
-int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view)){
+int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view, void *root_context)){
     SDL_assert(root_view_proc != NULL);
     SDL_assert(init_spa != NULL);
 
@@ -197,7 +197,7 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
     __create_root_view(&mgr, root_view_proc, root_view_manage, root_user_data);
 
 
-    init_spa(mgr.root_view);
+    init_spa(mgr.root_view, root_user_data);
 
     SDL_ShowWindow(mgr.window);
     SDL_Event ev;
@@ -290,11 +290,29 @@ GLuint glv_get_framebuffer(View *view){
 }
 
 GlvMsgDocs glv_get_docs(View *view, ViewMsg message){
-    SDL_assert(view != NULL);
-
     GlvMsgDocs result;
     SDL_zero(result);
     result.msg = VM_NULL;
+
+    if(view == NULL){
+        if(message == VM_GET_SINGLETON_DATA_SIZE){
+            glv_write_docs(&result, message, SDL_STRINGIFY_ARG(VM_GET_SINGLETON_DATA_SIZE), 
+            "NULL", "NULL", "uses to initialize singleton data, view is NULL");
+        }
+        else if(message == VM_SINGLETON_DATA_DELETE){
+            glv_write_docs(&result, message, SDL_STRINGIFY_ARG(VM_SINGLETON_DATA_DELETE), 
+            "void *singleton_data", "NULL", "uses to delete singleton data contents, view is NULL");
+        }
+        else if(message == VM_VIEW_FREE__){
+            glv_write_docs(&result, message, SDL_STRINGIFY_ARG(VM_VIEW_FREE__), 
+            "NULL", "NULL", "uses to delete view, doesnt sends to view or manage proc, view is NULL");
+        }
+        else{
+            glv_write_docs(&result, message, "undefined", 
+            "undefined", "undefined", "undefined, view is NULL");
+        }
+        return result;
+    }
 
     if(message == VM_GET_DOCS){
         result.name = SDL_STRINGIFY_ARG(VM_GET_DOCS);
@@ -305,6 +323,7 @@ GlvMsgDocs glv_get_docs(View *view, ViewMsg message){
     else{
         view->view_proc(view, VM_GET_DOCS, &message, &result);
         if(result.msg == VM_NULL){
+            result.msg = message;
             result.name = "undefined";
             result.input_description = "undefined";
             result.output_description = "undefined";
@@ -471,8 +490,6 @@ void glv_unset_secondary_focus(View *view){
 }
 
 void glv_print_docs(View *view, ViewMsg message){
-    SDL_assert(view != NULL);
-
     GlvMsgDocs docs = glv_get_docs(view, message);
 
     printf("\033[0;32m");
@@ -1137,7 +1154,7 @@ static void __enum_call_mouse_move_event(View *child, void *args_ptr){
     __set_is_mouse_over(child, true);
     glv_call_event(child, VM_MOUSE_MOVE, args, NULL);
     glv_call_manage(child, VM_MOUSE_MOVE, args);
-    glv_enum_visible_childs(child, __enum_call_mouse_button_event, args);
+    glv_enum_visible_childs(child, __enum_call_mouse_move_event, args);
     
     args->x = curr.x;
     args->y = curr.y;
@@ -1206,6 +1223,7 @@ static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev){
         glv_call_event(root, VM_MOUSE_MOVE, &args, NULL);
         glv_call_manage(root, VM_MOUSE_MOVE, &args);
         glv_enum_visible_childs(root, __enum_call_mouse_move_event, &args);
+
     }
 }
 
