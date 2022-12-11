@@ -525,7 +525,7 @@ GLuint glv_get_fg_texture(View *view){
     return view->fg_tex;
 }
 
-GLuint gen_texture_silid_color(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
+GLuint gen_texture_solid_color(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
     SDL_Color color = {
         .r = r,
         .g = g,

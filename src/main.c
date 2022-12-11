@@ -24,10 +24,10 @@ void init_spa(View *view, void *root_context){
     glv_text_view_normalize(text1, false);
     glv_text_view_normalize(text2, false);
 
-    glv_set_foreground(text1, gen_texture_silid_color(160, 120, 80, 255));
-    glv_set_foreground(text2, gen_texture_silid_color(120, 110, 100, 255));
+    glv_set_foreground(text1, gen_texture_solid_color(160, 120, 80, 255));
+    glv_set_foreground(text2, gen_texture_solid_color(120, 110, 100, 255));
 
-    glv_set_background(view, gen_texture_silid_color(20, 20, 20, 255));
+    glv_set_background(view, gen_texture_solid_color(20, 20, 20, 255));
 }
 
 int main(void){

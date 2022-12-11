@@ -227,7 +227,7 @@ GLuint glv_get_bg_texture(View *view);
 //doesnt makes view drawable, view should manage this manually
 GLuint glv_get_fg_texture(View *view);
 
-GLuint gen_texture_silid_color(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+GLuint gen_texture_solid_color(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
 //use glv_get_docs or glv_print_docs to see details
 //inherited views should implement docs for own messages and redirect procedure for others  
