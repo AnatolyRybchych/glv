@@ -560,6 +560,9 @@ void glv_show(View *view){
 
     __set_view_visibility(view, true);
     glv_push_event(view, VM_SHOW, NULL, 0);
+    if(view->parent != NULL){
+        glv_push_event(view->parent, VM_CHILD_SHOW, view, sizeof(view));
+    }
 }
 
 void glv_hide(View *view){
@@ -567,6 +570,9 @@ void glv_hide(View *view){
 
     __set_view_visibility(view, false);
     glv_push_event(view, VM_HIDE, NULL, 0);
+    if(view->parent != NULL){
+        glv_push_event(view->parent, VM_CHILD_HIDE, view, sizeof(view));
+    }
     unfocus_all_excepting(view, NULL);
 
     __set_is_mouse_over(view, false);
@@ -995,6 +1001,8 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_CHILD_MOVE, "View* view", "NULL", "calls on child move");
         __DOC_CASE(VM_CHILD_CREATE, "View* view", "NULL", "calls on child create");
         __DOC_CASE(VM_CHILD_DELETE, "View* view", "NULL", "calls on child delete");
+        __DOC_CASE(VM_CHILD_HIDE, "View* view", "NULL", "calls on child hide");
+        __DOC_CASE(VM_CHILD_SHOW, "View* view", "NULL", "calls on child show");
         __DOC_CASE(VM_MOUSE_HOVER, "NULL", "NULL", "calls on mouse hover");
         __DOC_CASE(VM_MOUSE_LEAVE, "NULL", "NULL", "calls on mouse leave");
         __DOC_CASE(VM_TEXT, "const char *", "NULL", "calls on text input if glv_is_focused(view)");

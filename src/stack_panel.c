@@ -77,6 +77,8 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
     case VM_CHILD_DELETE:
     case VM_CHILD_RESIZE:
     case VM_CHILD_CREATE:
+    case VM_CHILD_HIDE:
+    case VM_CHILD_SHOW:
     case VM_RESIZE:
         locate_childs(view);
         break;
