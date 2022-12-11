@@ -37,7 +37,8 @@ void init_spa(View *view){
 
     glv_text_view_set_font_height(text, 200);
     glv_text_view_set_solid_foreground(text, (SDL_Color){190, 120, 110, 255});
-    glv_text_view_set_alignment(text, -1, -1);
+    glv_text_view_set_alignment(text, 0, -1);
+    glv_text_view_normalize(text, true);
 }
 
 int main(void){

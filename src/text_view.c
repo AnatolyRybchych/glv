@@ -58,12 +58,12 @@ static void apply_font_height(View *text_view, Uint32 heihht);
 static void apply_align(View *text_view, SDL_Point align);
 static void set_texture_solid_color(GLuint texture, const GlvSolidColor *color);
 static void resize(View *text_view, const SDL_Point *new_size);
-
+static void normalize(View *text_view, bool move);
 static void render(View *text_view);
 static void render_text(FT_Face face, const wchar_t *text, SDL_Point pos, SDL_Point viewport_size, Singleton *singleton, Data *data);
 static void init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const SDL_Point *glyph_pos, const SDL_Point *viewport_size);
 static Uint32 calc_text_width(View *text_view, const wchar_t *text);
-
+static SDL_Point get_text_pos(View *text_view);
 
 ViewProc glv_text_view_proc = view_proc;
 static Uint32 data_offset;
@@ -109,6 +109,10 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
         break;
     case VM_TEXT_VIEW_SET_TEXTALIGN:{
         apply_align(view, *(SDL_Point*)in);
+        glv_draw(view);
+    } break;
+    case VM_TEXT_VIEW_NORMALIZE:{
+        normalize(view, *(bool*)in);
         glv_draw(view);
     } break;
     case VM_TEXT_VIEW_GET_TEXT:
@@ -157,21 +161,29 @@ GlvTextViewTextParams glv_text_view_get_text_params(View *text_view){
 }
 
 void glv_text_view_set_font_faceid(View *text_view, GlvFontFaceId face){
+    SDL_assert(text_view != NULL);
+
     apply_font_face(text_view, face);
     glv_draw(text_view);
 }
 
 void glv_text_view_set_font_width(View *text_view, Uint32 width){
+    SDL_assert(text_view != NULL);
+
     apply_font_width(text_view, width);
     glv_draw(text_view);
 }
 
 void glv_text_view_set_font_height(View *text_view, Uint32 height){
+    SDL_assert(text_view != NULL);
+
     apply_font_height(text_view, height);
     glv_draw(text_view);
 }
 
 void glv_text_view_set_solid_foreground(View *text_view, SDL_Color color){
+    SDL_assert(text_view != NULL);
+
     GlvColorStyle style = {
         .solid_color = {
             .type = GLV_COLORSTYLE_SOLID,
@@ -186,11 +198,19 @@ void glv_text_view_set_solid_foreground(View *text_view, SDL_Color color){
 }
 
 void glv_text_view_set_alignment(View *text_view, int x, int y){
+    SDL_assert(text_view != NULL);
+
     SDL_Point p = {
         .x = x,
         .y = y,
     };
     glv_push_event(text_view, VM_TEXT_VIEW_SET_TEXTALIGN, &p, sizeof(p));
+}
+
+void glv_text_view_normalize(View *text_view, bool move){
+    SDL_assert(text_view != NULL);
+
+    glv_push_event(text_view, VM_TEXT_VIEW_NORMALIZE, &move, sizeof(move));
 }
 
 static void init_singleton(View *text_view){
@@ -338,6 +358,10 @@ static void get_docs(View *text_view, const ViewMsg *msg, GlvMsgDocs *docs){
             "const SDL_Point *alignment", "NULL", "set text alignment: x -> horisonta,"
             " y -> vertical; if < 0 -> alignment begin, == 0 -> alignment center, > 0 -> alignment end");
         break;
+    case VM_TEXT_VIEW_NORMALIZE:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_NORMALIZE),
+            "const bool *move", "NULL", "set view size equals text size if *move != false moves this view to save text absolute location");
+        break;
     default:
         parent_proc(text_view, VM_GET_DOCS, (void*)msg, docs);
         break;
@@ -419,6 +443,19 @@ static void resize(View *text_view, const SDL_Point *new_size){
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+static void normalize(View *text_view, bool move){
+    SDL_Point curr_pos = glv_get_pos(text_view);
+
+    Data *data = glv_get_view_data(text_view, data_offset);
+
+    SDL_Point text_pos = get_text_pos(text_view);
+
+    glv_set_size(text_view, data->text_width, data->face_height);
+    if(move == false) return;
+
+    glv_set_pos(text_view, curr_pos.x + text_pos.x, curr_pos.y + text_pos.y);
+}
+
 static void render(View *text_view){
     GlvMgr *mgr = glv_get_mgr(text_view);
 
@@ -440,13 +477,7 @@ static void render(View *text_view){
     glClear(GL_COLOR_BUFFER_BIT);
     glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);  
 
-    SDL_Point text_pos = {0, 0};
-
-    if(data->align.x == 0) text_pos.x = (size.x - (int)data->text_width) / 2;
-    else if(data->align.x > 0) text_pos.x = size.x - (int)data->text_width;
-
-    if(data->align.y == 0) text_pos.y = (size.y - (int)data->face_height) / 2;
-    else if(data->align.y > 0) text_pos.y = size.y - (int)data->face_height;
+    SDL_Point text_pos = get_text_pos(text_view);
 
     render_text(face, data->text, text_pos, size, singleton, data);
 
@@ -546,4 +577,18 @@ static Uint32 calc_text_width(View *text_view, const wchar_t *text){
     }
     
     return curr_x;
+}
+
+static SDL_Point get_text_pos(View *text_view){
+    Data *data = glv_get_view_data(text_view, data_offset);
+    SDL_Point size = glv_get_size(text_view);
+    SDL_Point text_pos = {0, 0};
+
+    if(data->align.x == 0) text_pos.x = (size.x - (int)data->text_width) / 2;
+    else if(data->align.x > 0) text_pos.x = size.x - (int)data->text_width;
+
+    if(data->align.y == 0) text_pos.y = (size.y - (int)data->face_height) / 2;
+    else if(data->align.y > 0) text_pos.y = size.y - (int)data->face_height;
+
+    return text_pos;
 }

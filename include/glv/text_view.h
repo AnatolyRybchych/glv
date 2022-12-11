@@ -8,6 +8,7 @@
 #define VM_TEXT_VIEW_GET_TEXT VM_USER_FIRST + 2
 #define VM_TEXT_VIEW_GET_TEXT_PARAMS VM_USER_FIRST + 3
 #define VM_TEXT_VIEW_SET_TEXTALIGN VM_USER_FIRST + 4
+#define VM_TEXT_VIEW_NORMALIZE VM_USER_FIRST + 5
 
 extern ViewProc glv_text_view_proc;
 
@@ -26,6 +27,10 @@ void glv_text_view_set_solid_foreground(View *text_view, SDL_Color color);
 //if alignment is == 0 -> alignment center
 //if alignment is > 0 -> alignment end
 void glv_text_view_set_alignment(View *text_view, int x, int y);
+
+//resize view to make it size equals to text size  
+//if move is true, moves this view to save absolute text location 
+void glv_text_view_normalize(View *text_view, bool move);
 
 
 struct GlvTextViewTextParams{
