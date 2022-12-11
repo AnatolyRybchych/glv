@@ -84,16 +84,16 @@ GlvMgr *glv_get_mgr(View *view);
     //SDL_USEREVENT some events are reserved by SDL_RegisterEvents()
     void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, const SDL_Event *event, void *root_context));
 
-//call enum_proc for each child
+//call enum_proc for each first order child first order
 void glv_enum_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
 
-//call enum_proc for each visible child
+//call enum_proc for each first order visible child
 void glv_enum_visible_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
 
-//call enum_proc for each focused child
+//call enum_proc for each first order focused child
 void glv_enum_focused_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
 
-//call enum_proc parent and his parent... 
+//call enum_proc for parent and his parent... 
 void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), void *data);
 
 //create child view

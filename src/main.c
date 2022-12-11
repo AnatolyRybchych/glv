@@ -31,7 +31,7 @@ void init_spa(View *view){
     glv_new_freetype_face(mgr, "./Sarai.ttf", 0);
 
     View *text = glv_create(view, glv_text_view_proc, NULL, NULL);
-    glv_text_view_set_text(text, L"Some text Ggq");
+    glv_text_view_set_text(text, L"Some text");
     glv_set_pos(text, 0, 0);
     glv_set_size(text, 800, 800);
 

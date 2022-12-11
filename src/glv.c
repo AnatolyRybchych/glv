@@ -56,6 +56,9 @@ static Uint32 __get_singleton_data_size(ViewProc proc);
 static Uint32 user_msg_first;
 
 void glv_enum_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data){
+    SDL_assert(view != NULL);
+    SDL_assert(enum_proc != NULL);
+
     View **curr = view->childs;
     View **end = curr + view->childs_cnt;
 
@@ -66,6 +69,9 @@ void glv_enum_childs(View *view, void(*enum_proc)(View *childs, void *data), voi
 }
 
 void glv_enum_visible_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data){
+    SDL_assert(view != NULL);
+    SDL_assert(enum_proc != NULL);
+    
     View **curr = view->childs;
     View **end = curr + view->childs_cnt;
 
@@ -78,6 +84,8 @@ void glv_enum_visible_childs(View *view, void(*enum_proc)(View *childs, void *da
 }
 
 void glv_enum_focused_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data){
+    SDL_assert(view != NULL);
+
     View **curr = view->childs;
     View **end = curr + view->childs_cnt;
 
@@ -150,14 +158,8 @@ void glv_delete(View *view){
 
 GlvMgr *glv_get_mgr(View *view){
     SDL_assert(view != NULL);
-    return view->mgr;
-}
 
-void glv_manage_default(View *view, ViewMsg msg, const void *event_args, void *user_context){
-    view = view;//unused
-    event_args = event_args;//unused
-    user_context = user_context;//unused
-    msg = msg;//unused
+    return view->mgr;
 }
 
 void glv_proc_default(View *view, ViewMsg msg, void *in, void *out){
@@ -172,6 +174,9 @@ void glv_proc_default(View *view, ViewMsg msg, void *in, void *out){
 }
 
 int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view)){
+    SDL_assert(root_view_proc != NULL);
+    SDL_assert(init_spa != NULL);
+
     GlvMgr mgr;
     create_mgr(&mgr);
     mgr.is_running = true;
@@ -217,6 +222,8 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
 }
 
 void *glv_get_view_data(View *view, unsigned int offset){
+    SDL_assert(view != NULL);
+
     if(view->view_data_size <= offset){
         char err_log[256+1];
         snprintf(err_log, 256, "glv_get_view_data with offset out of data range, offset:%i", offset);
@@ -231,6 +238,7 @@ void *glv_get_view_data(View *view, unsigned int offset){
 
 void *glv_get_view_singleton_data(View *view){
     SDL_assert(view != NULL);
+
     return view->singleton_data;
 }
 
@@ -259,25 +267,31 @@ void glv_push_event(View *view, ViewMsg message, void *args, uint32_t args_size)
 
 void glv_call_event(View *view, ViewMsg message, void *in, void *out){
     SDL_assert(view != NULL);
+
     view->view_proc(view, message, in, out);
 }
 
 void glv_call_manage(View *view, ViewMsg message, void *event_args){
     SDL_assert(view != NULL);
+
     view->view_manage(view, message, event_args, view->user_context);
 }
 
 GLuint glv_get_texture(View *view){
     SDL_assert(view != NULL);
+
     return view->texture;
 }
 
 GLuint glv_get_framebuffer(View *view){
     SDL_assert(view != NULL);
+
     return view->framebuffer;
 }
 
 GlvMsgDocs glv_get_docs(View *view, ViewMsg message){
+    SDL_assert(view != NULL);
+
     GlvMsgDocs result;
     SDL_zero(result);
     result.msg = VM_NULL;
@@ -311,6 +325,9 @@ GlvMsgDocs glv_get_docs(View *view, ViewMsg message){
 void glv_write_docs(GlvMsgDocs *docs, ViewMsg message, 
     const char *name, const char *input_description, 
     const char *output_description, const char *general_description){
+    
+    SDL_assert(docs != NULL);
+
     docs->msg = message;
     docs->name = name;
     docs->input_description = input_description;
@@ -319,6 +336,8 @@ void glv_write_docs(GlvMsgDocs *docs, ViewMsg message,
 }
 
 void glv_set_minimal_frametime(GlvMgr *mgr, Uint32 ms_min_frametime){
+    SDL_assert(mgr);
+
     mgr->min_frametime_ms = ms_min_frametime;
 }
 
@@ -366,14 +385,22 @@ bool glv_is_focused(View *view){
 
 bool glv_is_visible(View *view){
     SDL_assert(view != NULL);
+    
     return view->is_visible;
 }
 
 bool glv_is_mouse_over(View *view){
+    SDL_assert(view != NULL);
+
     return view->is_mouse_over;
 }
 
 bool glv_build_program_or_quit_err(GlvMgr *mgr, const char *vertex, const char *fragment, GLuint *result){
+    SDL_assert(mgr != NULL);
+    SDL_assert(vertex != NULL);
+    SDL_assert(fragment != NULL);
+    SDL_assert(result != NULL);
+
     GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
     GLuint v = glCreateShader(GL_VERTEX_SHADER);
 
@@ -411,6 +438,8 @@ bool glv_build_program_or_quit_err(GlvMgr *mgr, const char *vertex, const char *
 }
 
 void glv_set_style(View *view, const GlvSetStyle *style){
+    SDL_assert(view != NULL);
+
     if(style->self_size < sizeof(GlvSetStyle)){
         glv_log_err(glv_get_mgr(view), "glv_set_style(): required style where self_size >= sizeof(GlvSetStyle)");
     }
@@ -420,6 +449,7 @@ void glv_set_style(View *view, const GlvSetStyle *style){
 }
 
 void glv_set_secondary_focus(View *view){
+    
     if(view == NULL) return;
     if(view->is_focused != false) return;
 
@@ -435,11 +465,14 @@ void glv_set_secondary_focus(View *view){
 }
 
 void glv_unset_secondary_focus(View *view){
+    SDL_assert(view != NULL);
+
     unfocus_all_excepting(view, NULL);
 }
 
 void glv_print_docs(View *view, ViewMsg message){
     SDL_assert(view != NULL);
+
     GlvMsgDocs docs = glv_get_docs(view, message);
 
     printf("\033[0;32m");
@@ -452,6 +485,8 @@ void glv_print_docs(View *view, ViewMsg message){
 
 
 void glv_set_pos(View *view, int x, int y){
+    SDL_assert(view != NULL);
+
     if(view == view->mgr->root_view){
         SDL_SetWindowPosition(view->mgr->window, x, y);
     }
@@ -470,6 +505,8 @@ void glv_set_pos(View *view, int x, int y){
 }
 
 void glv_set_size(View *view, unsigned int width, unsigned int height){
+    SDL_assert(view != NULL);
+
     if(view == view->mgr->root_view){
         SDL_SetWindowSize(view->mgr->window, width, height);
     }
@@ -487,22 +524,30 @@ void glv_set_size(View *view, unsigned int width, unsigned int height){
 }
 
 void glv_draw(View *view){
+    SDL_assert(view != NULL);
+
     view->is_drawable = true;
     glv_push_event(view, VM_DRAW, NULL, 0);
     glv_redraw_window(view->mgr);
 }
 
 void glv_deny_draw(View *view){
+    SDL_assert(view != NULL);
+
     view->is_drawable = false;
     glv_redraw_window(view->mgr);
 }
 
 void glv_show(View *view){
+    SDL_assert(view != NULL);
+
     __set_view_visibility(view, true);
     glv_push_event(view, VM_SHOW, NULL, 0);
 }
 
 void glv_hide(View *view){
+    SDL_assert(view != NULL);
+
     __set_view_visibility(view, false);
     glv_push_event(view, VM_HIDE, NULL, 0);
     unfocus_all_excepting(view, NULL);
@@ -979,9 +1024,6 @@ static void __draw_views_recursive(View *view, SDL_Rect parent){
         curr++;
     }
 }
-
-
-
 
 static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context){
     view = view;//unused
