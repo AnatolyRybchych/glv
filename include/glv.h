@@ -43,37 +43,80 @@ typedef struct GlvRadialGradient GlvRadialGradient;
 
 GlvMgr *glv_get_mgr(View *view);
     void glv_set_error_logger(GlvMgr *mgr, void (*logger_proc)(GlvMgr *mgr, const char *err));
+    //exit stop event loop and free mgr and all of its resources (views, fonts)
     void glv_quit(GlvMgr *mgr);
+
+    //redraw window after all events
     void glv_redraw_window(GlvMgr *mgr);
+
+    //draw texture cu current framebuffer
+    //mvp -> transformation matrix for texture vertices (identity is normal quad{{-1; -1}, {1; -1}, {-1, 1},{1, 1})
+    //tex_mvp -> transformation matrix for texture uv coords (identity is {{0; 0}, {1; 0}, {0, 1},{1, 1})
     void glv_draw_texture_mat2(GlvMgr *mgr, GLuint texture, float mvp[4*4], float tex_mvp[4*4]);
+
+    //glv_draw_texture_mat2 with tex_mvp == identity matrix
     void glv_draw_texture_mat(GlvMgr *mgr, GLuint texture, float mvp[4*4]);
+
+    //glv_draw_texture_mat with mvp builded by scale, translation and angle, angle is rotation around z axis
     void glv_draw_texture_st(GlvMgr *mgr, GLuint texture, float scale[3], float translate[3], float angle);
+
+    //draw src rect subtexture of texture in dst rect
     void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src, const SDL_Rect *dst);
+
+    //prints error using current error logger
     void glv_log_err(GlvMgr *mgr, const char *err);
+
+    //returns sdl window for this mgr
     SDL_Window *glv_get_window(GlvMgr *mgr);
 
     //returns -1 if error
+    //all font resources are managed by mgr 
     GlvFontFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index);
 
     //returns -1 if error
+    //all font resources are managed by mgr 
     GlvFontFaceId glv_new_freetype_face_mem(GlvMgr *mgr, const void *data, FT_Long data_size, FT_Long face_index);
+
+    //returns font for GlvFontFaceId in mgr
+    //returns NULL if out of range
     FT_Face glv_get_freetype_face(GlvMgr *mgr, GlvFontFaceId id);
 
-    //SDL_USEREVENT some events are reserved by SDL_RegisterEvents() 
+    //SDL_USEREVENT some events are reserved by SDL_RegisterEvents()
     void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, const SDL_Event *event, void *root_context));
 
+//call enum_proc for each child
 void glv_enum_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
+
+//call enum_proc for each visible child
 void glv_enum_visible_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
+
+//call enum_proc for each focused child
 void glv_enum_focused_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
+
+//call enum_proc parent and his parent... 
 void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), void *data);
 
+//create child view
+//manage_proc used to handle events
+//user_context can be accessed in manage_proc
 View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void *user_context);
+
+//deletes view and all childs
 void glv_delete(View *view);
+
+//default view procedure should be called in unhandled by view cases
 void glv_proc_default(View *view, ViewMsg msg, void *in, void *out);
+
+//run window with root view
 int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_user_data, void (*init_spa)(View *root_view));
+
+//returns view data that have size, defined in VM_GET_VIEW_DATA_SIZE
 void *glv_get_view_data(View *view, unsigned int offset);
+
+//returns view data that have size, defined in VM_GET_VIEW_DATA_SIZE and shared for all same view in this mgr 
 void *glv_get_view_singleton_data(View *view);
 
+//saves txture to bitmap file
 void glv_dump_texture(GlvMgr *mgr, const char *file, GLuint texture, Uint32 bmp_width, Uint32 bmp_height);
 
 //handles in message queue
@@ -88,19 +131,33 @@ void glv_call_event(View *view, ViewMsg message, void *in, void *out);
 //handles only by manage proc
 void glv_call_manage(View *view, ViewMsg message, void *event_args);
 
+//returns view texture 
 GLuint glv_get_texture(View *view);
+
+//returns view framebuffer
+//framebuffer is automaticaly bounds in VM_DRAW, but not in the other events
 GLuint glv_get_framebuffer(View *view);
 
+//returns documents for target message
+//strings are never NULL
 GlvMsgDocs glv_get_docs(View *view, ViewMsg message);
+
+//print documents for target message
 void glv_print_docs(View *view, ViewMsg message);
 
+//defines document using passed values
 void glv_write_docs(GlvMsgDocs *docs, ViewMsg message, 
     const char *name, const char *input_description, 
     const char *output_description, const char *general_description);
 
+//set minimal frametime
+//by default minimal frametime is equals to  1 / (monitor refresh rate) 
 void glv_set_minimal_frametime(GlvMgr *mgr, Uint32 ms_min_frametime);
 
+//set view position
 void glv_set_pos(View *view, int x, int y);
+
+//set view size
 void glv_set_size(View *view, unsigned int width, unsigned int height);
 
 //enables view texture drawing
@@ -111,29 +168,53 @@ void glv_draw(View *view);
 //for disable view texture drawing
 //childs will still drawing 
 void glv_deny_draw(View *view);
+
+//set view as visible
 void glv_show(View *view);
+
+//set view as invisible and unfocused and unhovered
 void glv_hide(View *view);
+
+//set focus for view and all parents and removes focus of all childs
 void glv_set_focus(View *view);
+
+// returns current view position
 SDL_Point glv_get_pos(View *view);
+
+//returns current view size
 SDL_Point glv_get_size(View *view);
+
+//returns parent view
 //return NULL if view is root
 View *glv_get_Parent(View *view);
+
+//returns is_focused status
 bool glv_is_focused(View *view);
+
+//returns is_visisble status
 bool glv_is_visible(View *view);
+
+//returns is_hovered status
 bool glv_is_mouse_over(View *view);
 
-//uses mgr only to log error
+//build shader program and log all error
+//shader program is unmanaged by mgr
+//mgr used only to log error
 bool glv_build_program_or_quit_err(GlvMgr *mgr, const char *vertex, const char *fragment, GLuint *result);
 
-//can be differ of GlvSetStyle, but contains GlvSetStyle in offset(0)
+//set bounch of styles 
+//style can be differ of GlvSetStyle, but contains GlvSetStyle in offset(0)
 void glv_set_style(View *view, const GlvSetStyle *style);
 
-//takes focus witout unfocusing others
+//take focus witout unfocusing others
+//nice to be used in VM_UNFOCUS message to views that required to capture all keyboard events
 void glv_set_secondary_focus(View *view);
 
-//removes only view focus and recursive childs
+//remove only view focus and recursive childs
 void glv_unset_secondary_focus(View *view);
 
+//use glv_get_docs or glv_print_docs to see details
+//inherited views should implement docs for own messages and redirect procedure for others  
 enum ViewMsg{
     VM_NULL,
     //calls last but not sent to view_proc or manage_proc
