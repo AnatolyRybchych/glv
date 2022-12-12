@@ -24,6 +24,7 @@ typedef struct GlvEventMouseMove GlvMouseMove;
 typedef struct GlvEventKey GlvKeyUp;
 typedef struct GlvEventKey GlvKeyDown;
 typedef struct GlvEventTextEditing GlvTextEditing;
+typedef struct GlvEventChildChanged GlvChildChanged;
 
 GlvMgr *glv_get_mgr(View *view);
     void glv_set_error_logger(GlvMgr *mgr, void (*logger_proc)(GlvMgr *mgr, const char *err));
@@ -167,6 +168,18 @@ void glv_hide(View *view);
 
 //set focus for view and all parents and removes focus of all childs
 void glv_set_focus(View *view);
+
+//uses to handle recursion when sended by parent view while handling CHILD_SHOW event
+void glv_show_by(View *sender, View *view);
+
+//uses to handle recursion when sended by parent view while handling CHILD_HIDE event
+void glv_hide_by(View *sender, View *view);
+
+//uses to handle recursion when sended by parent view while handling CHILD_MOVE event
+void glv_set_pos_by(View *sender, View *view, int x, int y);
+
+//uses to handle recursion when sended by parent view while handling CHILD_RESIZE event
+void glv_set_size_by(View *sender, View *view, unsigned int width, unsigned int height);
 
 // returns current view position
 SDL_Point glv_get_pos(View *view);
@@ -330,6 +343,11 @@ struct GlvEventTextEditing{
     char composition[32];
     int cursor;
     int selection_len;
+};
+
+struct GlvEventChildChanged{
+    View *child;
+    View *sender;//can be NULL uses to handle recursion
 };
 
 

@@ -125,7 +125,12 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
 
     glv_call_event(result, VM_CREATE, NULL, NULL);
     glv_call_manage(result, VM_CREATE, NULL);
-    glv_push_event(parent, VM_CHILD_CREATE, &result, sizeof(View*));
+
+    GlvChildChanged args = {
+        .child = result,
+        .sender = NULL,
+    };
+    glv_push_event(parent, VM_CHILD_CREATE, &args, sizeof(args));
 
     return result;
 }
@@ -137,7 +142,11 @@ void glv_delete(View *view){
         view->mgr->is_running = false;
     }
     else{
-        glv_push_event(view->parent, VM_CHILD_DELETE, &view, sizeof(View*));
+        GlvChildChanged args = {
+            .child = view,
+            .sender = NULL,
+        };
+        glv_push_event(view->parent, VM_CHILD_DELETE, &args, sizeof(args));
     }
 
     glDeleteTextures(1, &view->bg_tex);
@@ -360,6 +369,88 @@ void glv_set_focus(View *view){
     unfocus_all_excepting(view, view);
     glv_set_secondary_focus(view);
     glv_enum_parents(view, __enum_set_secondary_focus, NULL);
+}
+
+//uses to handle recursion when sended by parent view while handling CHILD_SHOW event
+void glv_show_by(View *sender, View *view){
+    SDL_assert(view != NULL);
+
+    __set_view_visibility(view, true);
+    glv_push_event(view, VM_SHOW, NULL, 0);
+    if(view->parent != NULL){
+        GlvChildChanged args = {
+            .child = view,
+            .sender = sender,
+        };
+        glv_push_event(view->parent, VM_CHILD_SHOW, &args, sizeof(args));
+    }
+}
+
+//uses to handle recursion when sended by parent view while handling CHILD_HIDE event
+void glv_hide_by(View *sender, View *view){
+    SDL_assert(view != NULL);
+
+    __set_view_visibility(view, false);
+    glv_push_event(view, VM_HIDE, NULL, 0);
+    if(view->parent != NULL){
+        GlvChildChanged args = {
+            .child = view,
+            .sender = sender,
+        };
+        glv_push_event(view->parent, VM_CHILD_HIDE, &args, sizeof(args));
+    }
+    unfocus_all_excepting(view, NULL);
+
+    __set_is_mouse_over(view, false);
+}
+
+//uses to handle recursion when sended by parent view while handling CHILD_MOVE event
+void glv_set_pos_by(View *sender, View *view, int x, int y){
+    SDL_assert(view != NULL);
+
+    if(view == view->mgr->root_view){
+        SDL_SetWindowPosition(view->mgr->window, x, y);
+    }
+    else{
+        view->x = x;
+        view->y = y;
+
+        SDL_Point new_pos = {
+            .x = x,
+            .y = y,
+        };
+        glv_push_event(view, VM_MOVE, &new_pos, sizeof(new_pos));
+        GlvChildChanged args = {
+            .child = view,
+            .sender = sender,
+        };
+        glv_push_event(view->parent, VM_CHILD_MOVE, &args, sizeof(args));
+        glv_redraw_window(view->mgr);
+    }
+}
+
+//uses to handle recursion when sended by parent view while handling CHILD_RESIZE event
+void glv_set_size_by(View *sender, View *view, unsigned int width, unsigned int height){
+    SDL_assert(view != NULL);
+
+    if(view == view->mgr->root_view){
+        SDL_SetWindowSize(view->mgr->window, width, height);
+    }
+    else{
+        view->w = width;
+        view->h = height;
+        SDL_Point new_size = {
+            .x = width,
+            .y = height,
+        };
+        glv_push_event(view, VM_RESIZE, &new_size, sizeof(new_size));
+        GlvChildChanged args = {
+            .child = view,
+            .sender = sender,
+        };
+        glv_push_event(view->parent, VM_CHILD_RESIZE, &args, sizeof(args));
+        glv_redraw_window(view->mgr);
+    }
 }
 
 SDL_Point glv_get_pos(View *view){
@@ -585,42 +676,11 @@ void glv_print_docs(View *view, ViewMsg message){
 
 
 void glv_set_pos(View *view, int x, int y){
-    SDL_assert(view != NULL);
-
-    if(view == view->mgr->root_view){
-        SDL_SetWindowPosition(view->mgr->window, x, y);
-    }
-    else{
-        view->x = x;
-        view->y = y;
-
-        SDL_Point new_pos = {
-            .x = x,
-            .y = y,
-        };
-        glv_push_event(view, VM_MOVE, &new_pos, sizeof(new_pos));
-        glv_push_event(view->parent, VM_CHILD_MOVE, &view, sizeof(View*));
-        glv_redraw_window(view->mgr);
-    }
+    glv_set_pos_by(NULL, view, x, y);
 }
 
 void glv_set_size(View *view, unsigned int width, unsigned int height){
-    SDL_assert(view != NULL);
-
-    if(view == view->mgr->root_view){
-        SDL_SetWindowSize(view->mgr->window, width, height);
-    }
-    else{
-        view->w = width;
-        view->h = height;
-        SDL_Point new_size = {
-            .x = width,
-            .y = height,
-        };
-        glv_push_event(view, VM_RESIZE, &new_size, sizeof(new_size));
-        glv_push_event(view->parent, VM_CHILD_RESIZE, &view, sizeof(View*));
-        glv_redraw_window(view->mgr);
-    }
+    glv_set_size_by(NULL, view, width, height);
 }
 
 void glv_draw(View *view){
@@ -640,26 +700,11 @@ void glv_deny_draw(View *view){
 }
 
 void glv_show(View *view){
-    SDL_assert(view != NULL);
-
-    __set_view_visibility(view, true);
-    glv_push_event(view, VM_SHOW, NULL, 0);
-    if(view->parent != NULL){
-        glv_push_event(view->parent, VM_CHILD_SHOW, view, sizeof(view));
-    }
+    glv_show_by(NULL, view);
 }
 
 void glv_hide(View *view){
-    SDL_assert(view != NULL);
-
-    __set_view_visibility(view, false);
-    glv_push_event(view, VM_HIDE, NULL, 0);
-    if(view->parent != NULL){
-        glv_push_event(view->parent, VM_CHILD_HIDE, view, sizeof(view));
-    }
-    unfocus_all_excepting(view, NULL);
-
-    __set_is_mouse_over(view, false);
+    glv_hide_by(NULL, view);
 }
 
 static void create_mgr(GlvMgr *mgr){
@@ -987,11 +1032,11 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_UNFOCUS, "NULL", "NULL", "calls on focus lost");
         __DOC_CASE(VM_KEY_DOWN, "const GlvKeyDown *args", "NULL", "calls on key down and view is focused");
         __DOC_CASE(VM_KEY_UP, "const GlvKeyUp *args", "NULL", "calls on key up and view is focused");
-        __DOC_CASE(VM_CHILD_RESIZE, "View* view", "NULL", "calls on child resize");
-        __DOC_CASE(VM_CHILD_MOVE, "View* view", "NULL", "calls on child move");
-        __DOC_CASE(VM_CHILD_CREATE, "View* view", "NULL", "calls on child create");
-        __DOC_CASE(VM_CHILD_DELETE, "View* view", "NULL", "calls on child delete");
-        __DOC_CASE(VM_CHILD_HIDE, "View* view", "NULL", "calls on child hide");
+        __DOC_CASE(VM_CHILD_RESIZE, "GlvChildChanged* view", "NULL", "calls on child resize");
+        __DOC_CASE(VM_CHILD_MOVE, "GlvChildChanged* view", "NULL", "calls on child move");
+        __DOC_CASE(VM_CHILD_CREATE, "GlvChildChanged* view", "NULL", "calls on child create");
+        __DOC_CASE(VM_CHILD_DELETE, "GlvChildChanged* view", "NULL", "calls on child delete");
+        __DOC_CASE(VM_CHILD_HIDE, "GlvChildChanged* view", "NULL", "calls on child hide");
         __DOC_CASE(VM_CHILD_SHOW, "View* view", "NULL", "calls on child show");
         __DOC_CASE(VM_MOUSE_HOVER, "NULL", "NULL", "calls on mouse hover");
         __DOC_CASE(VM_MOUSE_LEAVE, "NULL", "NULL", "calls on mouse leave");

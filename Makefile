@@ -13,6 +13,7 @@ objects		+= glv_mgr.o
 objects		+= text_view.o
 objects		+= stack_panel.o
 objects		+= canvas.o
+objects		+= flex_panel.o
 
 build:$(addprefix obj/, $(objects))
 	gcc $(CARGS) -o run $^ -lGL -lSDL2 -lm -lfreetype

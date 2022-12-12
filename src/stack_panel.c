@@ -80,9 +80,15 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
         break;
     case VM_CHILD_DELETE:
     case VM_CHILD_RESIZE:
+    case VM_CHILD_MOVE:
     case VM_CHILD_CREATE:
     case VM_CHILD_HIDE:
     case VM_CHILD_SHOW:
+        GlvChildChanged *args = in;
+        if(args->sender != view){
+            locate_childs(view);
+        }
+    break;
     case VM_RESIZE:
         locate_childs(view);
         break;
@@ -141,7 +147,7 @@ static void enum_locate_childs(View *child, void *args){
         if(location_params->alignment.x == 0) x = (location_params->panel_size.x - child_size.x) / 2;
         else if(location_params->alignment.x > 0) x = (location_params->panel_size.x - child_size.x);
 
-        glv_set_pos(child, x, location_params->curr.y);
+        glv_set_pos_by(glv_get_Parent(child), child, x, location_params->curr.y);
 
         location_params->curr.y += child_size.y;
     }
@@ -150,7 +156,7 @@ static void enum_locate_childs(View *child, void *args){
         if(location_params->alignment.y == 0) y = (location_params->panel_size.y - child_size.y) / 2;
         else if(location_params->alignment.y > 0) y = (location_params->panel_size.y - child_size.y);
 
-        glv_set_pos(child, location_params->curr.x, y);
+        glv_set_pos_by(glv_get_Parent(child), child, location_params->curr.x, y);
 
         location_params->curr.x += child_size.x;
     }

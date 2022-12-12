@@ -391,7 +391,6 @@ static void render(View *text_view){
         
         glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);  
         glv_draw_texture_mat(mgr, bg_texture, mat);
-        
     }
     else{
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -399,7 +398,6 @@ static void render(View *text_view){
     }
 
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_DST_ALPHA, GL_SRC_ALPHA, GL_DST_ALPHA);  
-    
 
     SDL_Point text_pos = get_text_pos(text_view);
 
