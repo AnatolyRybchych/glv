@@ -9,4 +9,8 @@ extern const char *draw_texture_frag;
 extern const char *draw_glyph_vert;
 extern const char *draw_glyph_frag;
 
+extern const char *draw_circle_vert;
+extern const char *draw_circle_frag;
+
+
 #endif //BUILTIN_SHADERS_H

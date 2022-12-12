@@ -6,7 +6,7 @@
 #define should_redraw __glv_private_should_redraw
 #define default_on_sdl_event __glv_private_default_on_sdl_event
 
-#define init_draw_texture_ifninit __glv_private_init_draw_texture_ifninit
+#define init_draw_texture __glv_private_init_draw_texture
 #define free_draw_texture __glv_private_free_draw_texture
 
 #define draw_texture_vert __glv_private_draw_texture_vert
@@ -14,5 +14,11 @@
 
 #define draw_glyph_vert __glv_private_glyph_vert
 #define draw_glyph_frag __glv_private_glyph_frag
+
+#define draw_circle_vert __glv_private_circle_vert
+#define draw_circle_frag __glv_private_circle_frag
+
+#define init_draw_circle __glv_private_init_draw_circle_program
+#define free_draw_circle __glv_private_free_draw_circle_program
 
 #endif //GLV_PRIVATE_H

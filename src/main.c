@@ -3,44 +3,52 @@
 #include <SDL2/SDL.h>
 #include <glv/text_view.h>
 #include <glv/stack_panel.h>
+#include <glv/canvas.h>
 
-void root_manage(View *root, ViewMsg msg, void *event_args, void *root_context){
-    root_context = root_context;//unused
-    root = root;//unused
-    event_args = event_args;//unused
-
+void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
+    view = view;
+    msg = msg;
+    args = args;
+    root_context = root_context;
     switch (msg){
-    case VM_DRAW:
-        break;
+    case VM_DRAW:{
+        GlvMgr *mgr = glv_get_mgr(view);
+
+        glv_draw_circle(mgr, 100, 100, 100, 1, 0, 0, 255);
+        glv_draw_circle(mgr, 100, 100, 200, 1, 0, 0, 255);
+        glv_draw_circle(mgr, 100, 200, 100, 1, 0, 0, 255);
+    }break;
     }
 }
 
+
 void init_spa(View *view, void *root_context){
     root_context = root_context;//unused
+    view = view;//unused
 
-    glv_stack_panel_set_vertical(view);
+    // glv_stack_panel_set_vertical(view);
 
-    GlvMgr *mgr = glv_get_mgr(view);
-    glv_new_freetype_face(mgr, "./Sarai.ttf", 0);
+    // GlvMgr *mgr = glv_get_mgr(view);
+    // glv_new_freetype_face(mgr, "./Sarai.ttf", 0);
 
-    View *text1 = glv_create(view, glv_text_view_proc, NULL, NULL);
-    View *text2 = glv_create(view, glv_text_view_proc, NULL, NULL);
+    // View *text1 = glv_create(view, glv_text_view_proc, NULL, NULL);
+    // View *text2 = glv_create(view, glv_text_view_proc, NULL, NULL);
 
-    glv_set_pos(text2, 0, 100);
-    text2 = text2;
+    // glv_set_pos(text2, 0, 100);
+    // text2 = text2;
 
-    glv_text_view_set_text(text1, L"text 1");
-    glv_text_view_set_text(text2, L"text 2");
+    // glv_text_view_set_text(text1, L"text 1");
+    // glv_text_view_set_text(text2, L"text 2");
 
-    glv_text_view_normalize(text1, false);
-    glv_text_view_normalize(text2, false);
+    // glv_text_view_normalize(text1, false);
+    // glv_text_view_normalize(text2, false);
 
-    glv_set_foreground(text1, glv_gen_texture_solid_color(160, 120, 80, 255));
-    glv_set_foreground(text2, glv_gen_texture_solid_color(120, 110, 100, 255));
+    // glv_set_foreground(text1, glv_gen_texture_solid_color(160, 120, 80, 255));
+    // glv_set_foreground(text2, glv_gen_texture_solid_color(120, 110, 100, 255));
 
-    glv_set_background(view, glv_gen_texture_solid_color(20, 20, 20, 255));
+    // glv_set_background(view, glv_gen_texture_solid_color(20, 20, 20, 255));
 }
 
 int main(void){
-    return glv_run(glv_stack_panel_proc, root_manage, NULL, init_spa);
+    return glv_run(glv_canvas_proc, manage_root, NULL, init_spa);
 }

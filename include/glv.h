@@ -47,6 +47,12 @@ GlvMgr *glv_get_mgr(View *view);
     //draw src rect subtexture of texture in dst rect
     void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src, const SDL_Rect *dst);
 
+    
+    void glv_draw_circle_rel(GlvMgr *mgr, Uint32 radius, float rel_x, float rel_y, float r, float g, float b, float a);
+
+    //draw colored circle coords 0;0 is left topov viewport 
+    void glv_draw_circle(GlvMgr *mgr, Uint32 radius, int x, int y, float r, float g, float b, float a);
+
     //prints error using current error logger
     void glv_log_err(GlvMgr *mgr, const char *err);
 

@@ -1,6 +1,5 @@
 #include "_glv.h"
 
-
 static void create_mgr(GlvMgr *mgr);
 static int delete_mgr(GlvMgr *mgr);
 static void handle_events(GlvMgr *mgr, const SDL_Event *ev);
@@ -188,7 +187,8 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
     SDL_GetWindowDisplayMode(mgr.window, &window_display_mode);
     glv_set_minimal_frametime(&mgr, 1000 / window_display_mode.refresh_rate);
 
-    init_draw_texture_ifninit(&mgr);
+    mgr.draw_texture_program = init_draw_texture(&mgr);
+    mgr.draw_circle_program = init_draw_circle(&mgr);
 
     __create_root_view(&mgr, root_view_proc, root_view_manage, root_user_data);
 
@@ -674,22 +674,15 @@ static void create_mgr(GlvMgr *mgr){
 static int delete_mgr(GlvMgr *mgr){
     __delete_singletons(mgr);
 
-    for(int face_id = mgr->faces_cnt - 1; face_id >= 0; face_id--){
-        FT_Error err = FT_Done_Face(mgr->faces[face_id]);
-        if(err){
-            glv_log_err(mgr, "cannot done freetype2 face");
-            glv_log_err(mgr, FT_Error_String(err));
-        }
-    }
-
     mgr->faces_cnt = 0;
     free(mgr->faces);
     mgr->faces = NULL;
 
     FT_Done_FreeType(mgr->ft_lib);
 
-    free_draw_texture(mgr);
-    
+    free_draw_texture(&mgr->draw_texture_program);
+    free_draw_circle(&mgr->draw_circle_program);
+
     SDL_DestroyWindow(mgr->window);
     SDL_GL_DeleteContext(mgr);
     return mgr->return_code;
@@ -952,11 +945,11 @@ static void __init_framebuffer(View *view){
 
 
 static void __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
-    if(ev->windowID != mgr->wind_id) return;
     if(mgr->root_view == NULL){
         glv_log_err(mgr, "root view is NULL");
         return;
     }
+    else if(ev->windowID != mgr->wind_id) return;
 
     switch (ev->event){
     case SDL_WINDOWEVENT_EXPOSED:

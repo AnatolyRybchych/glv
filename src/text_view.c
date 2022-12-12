@@ -405,6 +405,7 @@ static void render(View *text_view){
 
     render_text(face, data->text, text_pos, size, singleton, fg_texture);
 
+
     glBlendFuncSeparate(curr_blend[0], curr_blend[1], curr_blend[2], curr_blend[3]);  
 }
 

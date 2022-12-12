@@ -1,30 +1,69 @@
 #include "_glv.h"
 
-static void init_draw_texture_program(GlvMgr *mgr);
-static void init_draw_texture_vbo(GlvMgr *mgr);
-static void init_draw_texture_coord_bo(GlvMgr *mgr);
-static void init_draw_texture_var_locations(GlvMgr *mgr);
+static GLuint init_normal_vbo(void);
+static GLuint init_normal_uv_bo(void);
 
-void init_draw_texture_ifninit(GlvMgr *mgr){
-    if(mgr->draw_texture_program.prog == 0){
-        init_draw_texture_program(mgr);
-        init_draw_texture_vbo(mgr);
-        init_draw_texture_coord_bo(mgr);
-        init_draw_texture_var_locations(mgr);
-    }
-}
+DrawCircleProgram init_draw_circle(GlvMgr *mgr){
 
-static void init_draw_texture_program(GlvMgr *mgr){
+    DrawCircleProgram result;
     if(glv_build_program_or_quit_err(
-        mgr, draw_texture_vert, draw_texture_frag, &mgr->draw_texture_program.prog
+        mgr, draw_circle_vert, draw_circle_frag, &result.program
     ) == false){
+        glv_log_err(mgr, "cannot initialize shader program for circle drawing");
         glv_quit(mgr);
     }
+
+
+    result.vbo = init_normal_vbo();
+
+    result.vbo_pos = glGetAttribLocation(result.program, "vbo");
+    result.color_pos = glGetUniformLocation(result.program, "color");
+    result.scale_pos = glGetUniformLocation(result.program, "scale");
+    result.offset_pos = glGetUniformLocation(result.program, "offset");
+    result.px_radius_pos = glGetUniformLocation(result.program, "px_radius");
+
+    return result;
 }
 
-static void init_draw_texture_vbo(GlvMgr *mgr){
-    glGenBuffers(1, &mgr->draw_texture_program.vbo);
-    GLuint vbo = mgr->draw_texture_program.vbo;
+void free_draw_circle(DrawCircleProgram *prog){
+    SDL_assert(prog != NULL);
+
+    glDeleteBuffers(1, &prog->vbo);
+    glDeleteProgram(prog->program);
+}
+
+DrawTextureProgram init_draw_texture(GlvMgr *mgr){
+    DrawTextureProgram result;
+
+    if(glv_build_program_or_quit_err(
+        mgr, draw_texture_vert, draw_texture_frag, &result.prog
+    ) == false){
+        glv_log_err(mgr, "cannot initialize shader program for texture drawing");
+        glv_quit(mgr);
+    }
+
+    result.vbo = init_normal_vbo();
+    result.coords_bo = init_normal_uv_bo();
+
+    result.vertex_p = glGetAttribLocation(result.prog, "vertex_p");
+    result.tex_coords_p = glGetAttribLocation(result.prog, "tex_coords");
+
+    result.tex_p = glGetUniformLocation(result.prog, "tex");
+    result.mvp_p = glGetUniformLocation(result.prog, "mvp");
+    result.tex_mvp_p = glGetUniformLocation(result.prog, "tex_mvp");
+    return result;
+}
+
+void free_draw_texture(DrawTextureProgram *prog){
+    
+    if(prog->prog) glDeleteProgram(prog->prog);
+    if(prog->vbo) glDeleteBuffers(1, &prog->vbo);
+    if(prog->tex_coords_p) glDeleteBuffers(1, &prog->tex_coords_p);
+}
+
+static GLuint init_normal_vbo(void){
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     float buf_data[] = {
@@ -33,42 +72,23 @@ static void init_draw_texture_vbo(GlvMgr *mgr){
     };
     glBufferData(GL_ARRAY_BUFFER, sizeof(buf_data), buf_data, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    return vbo;
 }
 
-static void init_draw_texture_coord_bo(GlvMgr *mgr){
-    glGenBuffers(1, &mgr->draw_texture_program.coords_bo);
-    GLuint coords_bo = mgr->draw_texture_program.coords_bo;
+static GLuint init_normal_uv_bo(void){
+    GLuint uv_bo;
+    glGenBuffers(1, &uv_bo);
 
-    glBindBuffer(GL_ARRAY_BUFFER, coords_bo);
+    glBindBuffer(GL_ARRAY_BUFFER, uv_bo);
     float buf_data[] = {
         0,1, 1,1, 0,0,
         1,0, 1,1, 0,0
     };
     glBufferData(GL_ARRAY_BUFFER, sizeof(buf_data), buf_data, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
 
-static void init_draw_texture_var_locations(GlvMgr *mgr){
-    DrawTextureProgram *p = &mgr->draw_texture_program;
-
-    p->vertex_p = glGetAttribLocation(p->prog, "vertex_p");
-    p->tex_coords_p = glGetAttribLocation(p->prog, "tex_coords");
-
-    p->tex_p = glGetUniformLocation(p->prog, "tex");
-    p->mvp_p = glGetUniformLocation(p->prog, "mvp");
-    p->tex_mvp_p = glGetUniformLocation(p->prog, "tex_mvp");
-}
-
-void free_draw_texture(GlvMgr *mgr){
-    DrawTextureProgram *p = &mgr->draw_texture_program;
-    
-    if(p->prog) glDeleteProgram(p->prog);
-    if(p->vbo) glDeleteBuffers(1, &p->vbo);
-    if(p->tex_coords_p) glDeleteBuffers(1, &p->tex_coords_p);
-
-    p->prog = 0;
-    p->vbo = 0;
-    p->tex_coords_p = 0;
+    return uv_bo;
 }
 
 bool should_redraw(GlvMgr *mgr){
@@ -110,6 +130,8 @@ void glv_quit(GlvMgr *mgr){
 }
 
 void glv_redraw_window(GlvMgr *mgr){
+    SDL_assert(mgr != NULL);
+
     SDL_Event ev;
     ev.type = SDL_WINDOWEVENT;
 
@@ -126,6 +148,7 @@ void glv_redraw_window(GlvMgr *mgr){
 }
 
 void glv_draw_texture_mat2(GlvMgr *mgr, GLuint texture, float mvp[4*4], float tex_mvp[4*4]){
+    SDL_assert(mgr != NULL);
 
     DrawTextureProgram *p = &mgr->draw_texture_program;
 
@@ -157,6 +180,8 @@ void glv_draw_texture_mat2(GlvMgr *mgr, GLuint texture, float mvp[4*4], float te
 }
 
 void glv_dump_texture(GlvMgr *mgr, const char *file, GLuint texture, Uint32 bmp_width, Uint32 bmp_height){
+    SDL_assert(mgr != NULL);
+
     GLuint curr_fb;
     GLuint curr_texture;
     GLint viewport[4];
@@ -211,12 +236,16 @@ void glv_dump_texture(GlvMgr *mgr, const char *file, GLuint texture, Uint32 bmp_
 }
 
 void glv_draw_texture_mat(GlvMgr *mgr, GLuint texture, float mvp[4*4]){
+    SDL_assert(mgr != NULL);
+
     float tex_mvp[4*4];
     mvp_identity(tex_mvp);
     glv_draw_texture_mat2(mgr, texture, mvp, tex_mvp);
 }
 
 void glv_draw_texture_st(GlvMgr *mgr, GLuint texture, float scale[3], float translate[3], float angle){
+    SDL_assert(mgr != NULL);
+
     float mvp[4*4];
     mvp_identity(mvp);
     mvp_translate(mvp, translate);
@@ -227,6 +256,7 @@ void glv_draw_texture_st(GlvMgr *mgr, GLuint texture, float scale[3], float tran
 }
 
 void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src, const SDL_Rect *dst){
+    SDL_assert(mgr != NULL);
 
     float mvp[4*4];
     float tex_mvp[4*4];
@@ -264,6 +294,38 @@ void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src,
     mvp_scale(tex_mvp, scale);
 
     glv_draw_texture_mat2(mgr, texture, mvp, tex_mvp);
+}
+
+void glv_draw_circle_rel(GlvMgr *mgr, Uint32 radius, float rel_x, float rel_y, float r, float g, float b, float a){
+    SDL_assert(mgr != NULL);
+
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+
+    glUseProgram(mgr->draw_circle_program.program);
+    glEnableVertexAttribArray(mgr->draw_circle_program.vbo_pos);
+    glBindBuffer(GL_ARRAY_BUFFER, mgr->draw_circle_program.vbo);
+    glVertexAttribPointer(mgr->draw_circle_program.vbo_pos, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glUniform4f(mgr->draw_circle_program.color_pos, r, g, b, a);
+    glUniform1f(mgr->draw_circle_program.px_radius_pos, ((vp[2] + vp[3]) / (float)radius * 8.0) / (sqrt(vp[2] * vp[2] + vp[3] * vp[3])) );
+    glUniform2f(mgr->draw_circle_program.scale_pos, radius / (float)vp[2], radius / (float)vp[3]);
+    glUniform2f(mgr->draw_circle_program.offset_pos, rel_x, rel_y);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDisableVertexAttribArray(mgr->draw_circle_program.vbo_pos);
+    glUseProgram(0);
+}
+
+void glv_draw_circle(GlvMgr *mgr, Uint32 radius, int x, int y, float r, float g, float b, float a){
+    SDL_assert(mgr != NULL);
+
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+
+    glv_draw_circle_rel(mgr, radius, (x * 2) / (float)vp[2] - 1.0, (-y * 2) / (float)vp[3] + 1.0, r, g, b, a);
 }
 
 SDL_Window *glv_get_window(GlvMgr *mgr){

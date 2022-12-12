@@ -4,37 +4,47 @@
 #include <glv.h>
 #include "builtin_shaders.h"
 
+typedef struct SingletonData SingletonData; 
+typedef struct _MBEvEnumArgs _MBEvEnumArgs;
+typedef struct _KeyEvEnumArgs _KeyEvEnumArgs;
+typedef struct GlvSdlEvent GlvSdlEvent;
+typedef struct DrawTextureProgram DrawTextureProgram;
+typedef struct DrawCircleProgram DrawCircleProgram;
+
 void log_printf(GlvMgr *mgr, const char *log);
 bool should_redraw(GlvMgr *mgr);
 void default_on_sdl_event(View *root, const SDL_Event *event, void *root_context);
 
-void init_draw_texture_ifninit(GlvMgr *mgr);
-void free_draw_texture(GlvMgr *mgr);
+DrawTextureProgram init_draw_texture(GlvMgr *mgr);
+void free_draw_texture(DrawTextureProgram *prog);
 
-typedef struct SingletonData{
+DrawCircleProgram init_draw_circle(GlvMgr *mgr);
+void free_draw_circle(DrawCircleProgram *prog);
+
+struct SingletonData{
     ViewProc proc;
-} SingletonData;
+};
 
-typedef struct _MBEvEnumArgs{
+struct _MBEvEnumArgs{
     struct GlvEventMouseButton ev;
     ViewMsg message;
-} _MBEvEnumArgs;
+};
 
-typedef struct _KeyEvEnumArgs{
+struct _KeyEvEnumArgs{
     struct GlvEventKey ev;
     ViewMsg message;
-} _KeyEvEnumArgs;
+};
 
-typedef struct GlvSdlEvent{
+struct GlvSdlEvent{
     Uint32 type;        /**< ::SDL_USEREVENT through ::SDL_LASTEVENT-1 */
     Uint32 timestamp;   /**< In milliseconds, populated using SDL_GetTicks() */
     Uint32 windowID;    /**< The associated window if any */
     ViewMsg message;        /**< User defined event code */
     View *view;        /**< User defined data pointer */
     void *data;        /**< User defined data pointer */
-} GlvSdlEvent;
+};
 
-typedef struct DrawTextureProgram{
+struct DrawTextureProgram{
     GLuint prog;
     GLuint vbo;
     GLuint coords_bo;
@@ -45,7 +55,18 @@ typedef struct DrawTextureProgram{
     GLuint tex_p;
     GLuint mvp_p;
     GLuint tex_mvp_p;
-} DrawTextureProgram;
+};
+
+struct DrawCircleProgram{
+    GLuint program;
+    GLuint vbo;
+
+    GLuint vbo_pos;
+    GLuint color_pos;
+    GLuint offset_pos;
+    GLuint scale_pos;
+    GLuint px_radius_pos;
+};
 
 struct GlvMgr{
     bool is_running;
@@ -74,6 +95,7 @@ struct GlvMgr{
     Uint32 last_frame_drawed_time_ms;
 
     DrawTextureProgram draw_texture_program;
+    DrawCircleProgram draw_circle_program;
 };
 
 struct View{
