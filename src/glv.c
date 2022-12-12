@@ -491,7 +491,25 @@ GLuint glv_swap_texture(View *view, GLuint texture){
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_BUFFER_BIT, GL_TEXTURE_2D, texture, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    view->is_drawable = true;
+    glv_redraw_window(view->mgr);
+
     return prev;
+}
+
+void glv_swap_texture_with_bg(View *view){
+    SDL_assert(view != NULL);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_BUFFER_BIT, GL_TEXTURE_2D, view->bg_tex, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    GLuint tmp = view->texture;
+    view->texture = view->bg_tex;
+    view->bg_tex = tmp;
+
+    view->is_drawable = true;
+    glv_redraw_window(view->mgr);
 }
 
 void glv_set_background(View *view, GLuint texture){
@@ -525,7 +543,7 @@ GLuint glv_get_fg_texture(View *view){
     return view->fg_tex;
 }
 
-GLuint gen_texture_solid_color(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
+GLuint glv_gen_texture_solid_color(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
     SDL_Color color = {
         .r = r,
         .g = g,
@@ -762,7 +780,6 @@ static void apply_events(GlvMgr *mgr){
     
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
-        
         draw_views_recursive(mgr->root_view);
         SDL_GL_SwapWindow(mgr->window);
     }

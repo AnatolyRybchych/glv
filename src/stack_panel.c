@@ -28,7 +28,6 @@ static bool set_vertical(View *stack_panel);
 static bool set_horisontal(View *stack_panel);
 static void set_alignment(View *stack_panel, const SDL_Point *alignment);
 static void write_docs(View *stack_panel, ViewMsg msg, GlvMsgDocs *docs);
-static void draw(View *stack_panel);
 static bool set_bg(View *view, const GLuint *stack_panel);
 
 ViewProc glv_stack_panel_proc = proc;
@@ -63,9 +62,6 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
     view = view;
 
     switch (msg){
-    case VM_DRAW:
-        draw(view);
-        break;
     case VM_SET_BG:
         if(set_bg(view, in)) glv_draw(view);
         break;
@@ -224,23 +220,13 @@ static void write_docs(View *stack_panel, ViewMsg msg, GlvMsgDocs *docs){
     }
 }
 
-static void draw(View *stack_panel){
-    GLuint bg = glv_get_bg_texture(stack_panel);
-    GlvMgr *mgr = glv_get_mgr(stack_panel);
-
-    float mat[16];
-    mvp_identity(mat);
-
-    glv_draw_texture_mat(mgr, bg, mat);
-    
-}
-
 static bool set_bg(View *stack_panel, const GLuint *texture){
     if(*texture == 0){
         glv_deny_draw(stack_panel);
         return false;
     }
     else{
+        glv_swap_texture_with_bg(stack_panel);
         return true;
     }
 }

@@ -70,11 +70,11 @@ void glv_draw_texture_mat2(GlvMgr *mgr, GLuint texture, float mvp[4*4], float te
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(p->tex_p, 0);
 
     glUniformMatrix4fv(p->mvp_p, 1, 0, mvp);
     glUniformMatrix4fv(p->tex_mvp_p, 1, 0, tex_mvp);
 
+    glUniform1i(p->tex_p, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
