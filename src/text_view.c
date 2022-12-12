@@ -273,7 +273,7 @@ static void append_text(View *text_view, const wchar_t *text){
     );
     memcpy(data->text + data->text_len, text, append_size);
 
-    data->text_width = calc_text_width(text_view, text);
+    data->text_width += calc_text_width(text_view, text);
 }
 
 static void get_text(View *text_view, const wchar_t **text){
@@ -405,7 +405,6 @@ static void render(View *text_view){
 
     render_text(face, data->text, text_pos, size, singleton, fg_texture);
 
-
     glBlendFuncSeparate(curr_blend[0], curr_blend[1], curr_blend[2], curr_blend[3]);  
 }
 
@@ -494,13 +493,16 @@ static Uint32 calc_text_width(View *text_view, const wchar_t *text){
     const wchar_t *text_ptr = text;
     wchar_t curr;
 
+    FT_Set_Pixel_Sizes(face, data->face_width, data->face_height);
+
     int curr_x = 0;
     while ((curr = *text_ptr++) != 0){
         FT_Load_Char(face, curr, FT_LOAD_RENDER);
+
         FT_GlyphSlot glyph = face->glyph;
         curr_x += glyph->metrics.horiAdvance / 64;
     }
-    
+
     return curr_x;
 }
 

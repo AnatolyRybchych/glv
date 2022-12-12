@@ -114,6 +114,7 @@ struct View{
     unsigned int h;
 
     bool is_drawable;
+    bool is_redraw_queue;
     bool is_visible;
     bool is_focused;
     bool is_mouse_over;

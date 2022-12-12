@@ -9,9 +9,6 @@ static void unfocus_all_excepting(View *view, View *exception);
 static bool handle_private_message(View *view, ViewMsg message, const void *in);
 static unsigned int get_view_data_size(View *view);
 
-static void preprocess_message(View *view, ViewMsg msg, void *in);
-static void postprocess_message(View *view, ViewMsg msg, void *in);
-
 static bool __init_sdl(GlvMgr *mgr);
 static bool __init_window(GlvMgr *mgr);
 static bool __init_gl_ctx(GlvMgr *mgr);
@@ -36,6 +33,7 @@ static void __enum_call_key_event(View *view, void *args_ptr);
 static void __enum_call_textinput_event(View *view, void *args_ptr);
 static void __enum_call_textediting_event(View *view, void *args_ptr);
 static void __enum_call_sdl_redirect_event(View *view, void *args_ptr);
+static void __enum_draw_views(View *view, void *unused);
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev);
 static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev);
@@ -629,7 +627,8 @@ void glv_draw(View *view){
     SDL_assert(view != NULL);
 
     view->is_drawable = true;
-    glv_push_event(view, VM_DRAW, NULL, 0);
+    view->is_redraw_queue = true;
+    
     glv_redraw_window(view->mgr);
 }
 
@@ -707,12 +706,8 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             if(ev->user.code < (Sint32)user_msg_first || ev->user.code > (Sint32)user_msg_first + VM_USER_LAST) break;
             const GlvSdlEvent *glv_ev = (const GlvSdlEvent*)&ev->user;
             if(!handle_private_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data)){
-                preprocess_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data);
-
                 glv_call_event(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data, NULL);
                 glv_call_manage(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data);
-                
-                postprocess_message(glv_ev->view, glv_ev->message - user_msg_first, glv_ev->data);
             }
             free(glv_ev->data);
         } return;
@@ -765,6 +760,8 @@ static void apply_events(GlvMgr *mgr){
             return;
         }
     
+        __enum_draw_views(mgr->root_view, NULL);
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
         draw_views_recursive(mgr->root_view);
@@ -819,25 +816,6 @@ static unsigned int get_view_data_size(View *view){
     Uint32 data_size = 0;
     glv_call_event(view, VM_GET_VIEW_DATA_SIZE, NULL, &data_size);
     return data_size;
-}
-
-static void preprocess_message(View *view, ViewMsg msg, void *in){
-    in = in;//unused;
-    switch (msg){
-    case VM_DRAW:
-        glBindFramebuffer(GL_FRAMEBUFFER, glv_get_framebuffer(view));
-        break;
-    }
-}
-
-static void postprocess_message(View *view, ViewMsg msg, void *in){
-    view = view;//unused
-    in = in;//unused;
-    switch (msg){
-    case VM_DRAW:
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        break;
-    }
 }
 
 static bool __init_sdl(GlvMgr *mgr){
@@ -1212,6 +1190,18 @@ static void __enum_call_sdl_redirect_event(View *view, void *args_ptr){
     glv_call_event(view, VM_SDL_REDIRECT, args_ptr, NULL);
     glv_call_manage(view, VM_SDL_REDIRECT, args_ptr);
     glv_enum_visible_childs(view, __enum_call_sdl_redirect_event, args_ptr);
+}
+
+static void __enum_draw_views(View *view, void *unused){
+    
+    if(view->is_redraw_queue){
+        view->is_redraw_queue = false;
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
+        glv_call_event(view, VM_DRAW, NULL, NULL);
+        glv_call_manage(view, VM_DRAW, NULL);
+    }
+    glv_enum_childs(view, __enum_draw_views, unused);
 }
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev){
