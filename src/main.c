@@ -4,6 +4,17 @@
 #include <glv/text_view.h>
 #include <glv/stack_panel.h>
 
+void root_manage(View *root, ViewMsg msg, void *event_args, void *root_context){
+    root_context = root_context;//unused
+    root = root;//unused
+    event_args = event_args;//unused
+
+    switch (msg){
+    case VM_DRAW:
+        break;
+    }
+}
+
 void init_spa(View *view, void *root_context){
     root_context = root_context;//unused
 
@@ -31,5 +42,5 @@ void init_spa(View *view, void *root_context){
 }
 
 int main(void){
-    return glv_run(glv_stack_panel_proc, NULL, NULL, init_spa);
+    return glv_run(glv_stack_panel_proc, root_manage, NULL, init_spa);
 }

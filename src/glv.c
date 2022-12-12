@@ -13,13 +13,6 @@ static unsigned int get_view_data_size(View *view);
 static void preprocess_message(View *view, ViewMsg msg, void *in);
 static void postprocess_message(View *view, ViewMsg msg, void *in);
 
-static void __init_draw_texture_ifninit(GlvMgr *mgr);
-static void __init_draw_texture_program(GlvMgr *mgr);
-static void __init_draw_texture_vbo(GlvMgr *mgr);
-static void __init_draw_texture_coord_bo(GlvMgr *mgr);
-static void __init_draw_texture_var_locations(GlvMgr *mgr);
-static void __free_draw_texture(GlvMgr *mgr);
-
 static bool __init_sdl(GlvMgr *mgr);
 static bool __init_window(GlvMgr *mgr);
 static bool __init_gl_ctx(GlvMgr *mgr);
@@ -195,7 +188,7 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
     SDL_GetWindowDisplayMode(mgr.window, &window_display_mode);
     glv_set_minimal_frametime(&mgr, 1000 / window_display_mode.refresh_rate);
 
-    __init_draw_texture_ifninit(&mgr);
+    init_draw_texture_ifninit(&mgr);
 
     __create_root_view(&mgr, root_view_proc, root_view_manage, root_user_data);
 
@@ -695,7 +688,8 @@ static int delete_mgr(GlvMgr *mgr){
 
     FT_Done_FreeType(mgr->ft_lib);
 
-    __free_draw_texture(mgr);
+    free_draw_texture(mgr);
+    
     SDL_DestroyWindow(mgr->window);
     SDL_GL_DeleteContext(mgr);
     return mgr->return_code;
@@ -851,72 +845,6 @@ static void postprocess_message(View *view, ViewMsg msg, void *in){
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         break;
     }
-}
-
-static void __init_draw_texture_ifninit(GlvMgr *mgr){
-    if(mgr->draw_texture_program.prog == 0){
-        __init_draw_texture_program(mgr);
-        __init_draw_texture_vbo(mgr);
-        __init_draw_texture_coord_bo(mgr);
-        __init_draw_texture_var_locations(mgr);
-    }
-}
-
-static void __init_draw_texture_program(GlvMgr *mgr){
-    if(glv_build_program_or_quit_err(
-        mgr, draw_texture_vert, draw_texture_frag, &mgr->draw_texture_program.prog
-    ) == false){
-        glv_quit(mgr);
-    }
-}
-
-static void __init_draw_texture_vbo(GlvMgr *mgr){
-    glGenBuffers(1, &mgr->draw_texture_program.vbo);
-    GLuint vbo = mgr->draw_texture_program.vbo;
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    float buf_data[] = {
-        -1,1, 1,1, -1,-1,
-        1,-1, 1,1, -1,-1
-    };
-    glBufferData(GL_ARRAY_BUFFER, sizeof(buf_data), buf_data, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-static void __init_draw_texture_coord_bo(GlvMgr *mgr){
-    glGenBuffers(1, &mgr->draw_texture_program.coords_bo);
-    GLuint coords_bo = mgr->draw_texture_program.coords_bo;
-
-    glBindBuffer(GL_ARRAY_BUFFER, coords_bo);
-    float buf_data[] = {
-        0,1, 1,1, 0,0,
-        1,0, 1,1, 0,0
-    };
-    glBufferData(GL_ARRAY_BUFFER, sizeof(buf_data), buf_data, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-static void __init_draw_texture_var_locations(GlvMgr *mgr){
-    DrawTextureProgram *p = &mgr->draw_texture_program;
-
-    p->vertex_p = glGetAttribLocation(p->prog, "vertex_p");
-    p->tex_coords_p = glGetAttribLocation(p->prog, "tex_coords");
-
-    p->tex_p = glGetUniformLocation(p->prog, "tex");
-    p->mvp_p = glGetUniformLocation(p->prog, "mvp");
-    p->tex_mvp_p = glGetUniformLocation(p->prog, "tex_mvp");
-}
-
-static void __free_draw_texture(GlvMgr *mgr){
-    DrawTextureProgram *p = &mgr->draw_texture_program;
-    
-    if(p->prog) glDeleteProgram(p->prog);
-    if(p->vbo) glDeleteBuffers(1, &p->vbo);
-    if(p->tex_coords_p) glDeleteBuffers(1, &p->tex_coords_p);
-
-    p->prog = 0;
-    p->vbo = 0;
-    p->tex_coords_p = 0;
 }
 
 static bool __init_sdl(GlvMgr *mgr){

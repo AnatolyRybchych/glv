@@ -1,5 +1,76 @@
 #include "_glv.h"
 
+static void init_draw_texture_program(GlvMgr *mgr);
+static void init_draw_texture_vbo(GlvMgr *mgr);
+static void init_draw_texture_coord_bo(GlvMgr *mgr);
+static void init_draw_texture_var_locations(GlvMgr *mgr);
+
+void init_draw_texture_ifninit(GlvMgr *mgr){
+    if(mgr->draw_texture_program.prog == 0){
+        init_draw_texture_program(mgr);
+        init_draw_texture_vbo(mgr);
+        init_draw_texture_coord_bo(mgr);
+        init_draw_texture_var_locations(mgr);
+    }
+}
+
+static void init_draw_texture_program(GlvMgr *mgr){
+    if(glv_build_program_or_quit_err(
+        mgr, draw_texture_vert, draw_texture_frag, &mgr->draw_texture_program.prog
+    ) == false){
+        glv_quit(mgr);
+    }
+}
+
+static void init_draw_texture_vbo(GlvMgr *mgr){
+    glGenBuffers(1, &mgr->draw_texture_program.vbo);
+    GLuint vbo = mgr->draw_texture_program.vbo;
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    float buf_data[] = {
+        -1,1, 1,1, -1,-1,
+        1,-1, 1,1, -1,-1
+    };
+    glBufferData(GL_ARRAY_BUFFER, sizeof(buf_data), buf_data, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+static void init_draw_texture_coord_bo(GlvMgr *mgr){
+    glGenBuffers(1, &mgr->draw_texture_program.coords_bo);
+    GLuint coords_bo = mgr->draw_texture_program.coords_bo;
+
+    glBindBuffer(GL_ARRAY_BUFFER, coords_bo);
+    float buf_data[] = {
+        0,1, 1,1, 0,0,
+        1,0, 1,1, 0,0
+    };
+    glBufferData(GL_ARRAY_BUFFER, sizeof(buf_data), buf_data, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+static void init_draw_texture_var_locations(GlvMgr *mgr){
+    DrawTextureProgram *p = &mgr->draw_texture_program;
+
+    p->vertex_p = glGetAttribLocation(p->prog, "vertex_p");
+    p->tex_coords_p = glGetAttribLocation(p->prog, "tex_coords");
+
+    p->tex_p = glGetUniformLocation(p->prog, "tex");
+    p->mvp_p = glGetUniformLocation(p->prog, "mvp");
+    p->tex_mvp_p = glGetUniformLocation(p->prog, "tex_mvp");
+}
+
+void free_draw_texture(GlvMgr *mgr){
+    DrawTextureProgram *p = &mgr->draw_texture_program;
+    
+    if(p->prog) glDeleteProgram(p->prog);
+    if(p->vbo) glDeleteBuffers(1, &p->vbo);
+    if(p->tex_coords_p) glDeleteBuffers(1, &p->tex_coords_p);
+
+    p->prog = 0;
+    p->vbo = 0;
+    p->tex_coords_p = 0;
+}
+
 bool should_redraw(GlvMgr *mgr){
     if(mgr->required_redraw == false) return false;
 

@@ -8,6 +8,9 @@ void log_printf(GlvMgr *mgr, const char *log);
 bool should_redraw(GlvMgr *mgr);
 void default_on_sdl_event(View *root, const SDL_Event *event, void *root_context);
 
+void init_draw_texture_ifninit(GlvMgr *mgr);
+void free_draw_texture(GlvMgr *mgr);
+
 typedef struct SingletonData{
     ViewProc proc;
 } SingletonData;
