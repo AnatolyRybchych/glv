@@ -84,8 +84,7 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
     case VM_CHILD_CREATE:
     case VM_CHILD_HIDE:
     case VM_CHILD_SHOW:
-        GlvChildChanged *args = in;
-        if(args->sender != view){
+        if(((const GlvChildChanged *)in)->sender != view){
             locate_childs(view);
         }
     break;

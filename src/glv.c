@@ -1320,8 +1320,8 @@ static void *__create_singleton_data_ifnexists(GlvMgr *mgr, ViewProc proc){
         mgr->view_singleton_data_cnt * sizeof(SingletonData*));
     
     SingletonData *data = malloc(sizeof(SingletonData) + size);
+    memset(data, 0, sizeof(SingletonData) + size);
     data->proc = proc;
-    memset(data + sizeof(SingletonData), 0, size);
 
     mgr->view_singleton_data[mgr->view_singleton_data_cnt - 1] = data;
     
