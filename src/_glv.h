@@ -10,6 +10,7 @@ typedef struct _KeyEvEnumArgs _KeyEvEnumArgs;
 typedef struct GlvSdlEvent GlvSdlEvent;
 typedef struct DrawTextureProgram DrawTextureProgram;
 typedef struct DrawCircleProgram DrawCircleProgram;
+typedef struct DrawTriangleProgram DrawTriangleProgram;
 
 void log_printf(GlvMgr *mgr, const char *log);
 bool should_redraw(GlvMgr *mgr);
@@ -20,6 +21,9 @@ void free_draw_texture(DrawTextureProgram *prog);
 
 DrawCircleProgram init_draw_circle(GlvMgr *mgr);
 void free_draw_circle(DrawCircleProgram *prog);
+
+DrawTriangleProgram init_draw_triangle(GlvMgr *mgr);
+void free_draw_triangle(DrawTriangleProgram *prog);
 
 struct SingletonData{
     ViewProc proc;
@@ -68,6 +72,13 @@ struct DrawCircleProgram{
     GLuint px_radius_pos;
 };
 
+struct DrawTriangleProgram{
+    GLuint program;
+
+    GLuint vbo_pos;
+    GLuint vertex_color_pos;
+};
+
 struct GlvMgr{
     bool is_running;
     int return_code;
@@ -96,6 +107,7 @@ struct GlvMgr{
 
     DrawTextureProgram draw_texture_program;
     DrawCircleProgram draw_circle_program;
+    DrawTriangleProgram draw_triangle_program;
 };
 
 struct View{

@@ -196,6 +196,7 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
 
     mgr.draw_texture_program = init_draw_texture(&mgr);
     mgr.draw_circle_program = init_draw_circle(&mgr);
+    mgr.draw_triangle_program = init_draw_triangle(&mgr);
 
     __create_root_view(&mgr, root_view_proc, root_view_manage, root_user_data);
 
@@ -726,6 +727,7 @@ static int delete_mgr(GlvMgr *mgr){
 
     free_draw_texture(&mgr->draw_texture_program);
     free_draw_circle(&mgr->draw_circle_program);
+    free_draw_triangle(&mgr->draw_triangle_program);
 
     SDL_DestroyWindow(mgr->window);
     SDL_GL_DeleteContext(mgr);

@@ -81,3 +81,27 @@ const char *draw_circle_frag =
 "void main(){\n"
 "    gl_FragColor = vec4(color.rgb, circle_clear_mask * color.a);\n"
 "}\n";
+
+const char *draw_triangle_vert =
+"#version 110\n"
+"\n"
+"attribute vec4 vertex_p;\n"
+"attribute vec4 vertex_color;\n"
+"\n"
+"varying vec4 color;\n"
+"\n"
+"void main(){\n"
+"    color = vertex_color;\n"
+"    gl_Position = vertex_p;\n"
+"}\n"
+"";
+
+const char *draw_triangle_frag =
+"#version 110\n"
+"\n"
+"varying vec4 color;\n"
+"\n"
+"void main(){\n"
+"    gl_FragColor = color;\n"
+"}\n"
+"";

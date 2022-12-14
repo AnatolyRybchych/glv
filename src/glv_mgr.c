@@ -3,6 +3,26 @@
 static GLuint init_normal_vbo(void);
 static GLuint init_normal_uv_bo(void);
 
+DrawTriangleProgram init_draw_triangle(GlvMgr *mgr){
+    DrawTriangleProgram result;
+
+    if(glv_build_program_or_quit_err(
+        mgr, draw_triangle_vert, draw_triangle_frag, &result.program
+    ) == false){
+        glv_log_err(mgr, "cannot initialize shader program for triangle drawing");
+        glv_quit(mgr);
+    }
+
+    result.vbo_pos = glGetAttribLocation(result.program, "vertex_p");
+    result.vertex_color_pos = glGetAttribLocation(result.program, "vertex_color");
+
+    return result;
+}   
+
+void free_draw_triangle(DrawTriangleProgram *prog){
+    glDeleteProgram(prog->program);
+}
+
 DrawCircleProgram init_draw_circle(GlvMgr *mgr){
 
     DrawCircleProgram result;
@@ -326,6 +346,23 @@ void glv_draw_circle(GlvMgr *mgr, Uint32 radius, int x, int y, float r, float g,
     glGetIntegerv(GL_VIEWPORT, vp);
 
     glv_draw_circle_rel(mgr, radius, (x * 2) / (float)vp[2] - 1.0, (-y * 2) / (float)vp[3] + 1.0, r, g, b, a);
+}
+
+void glv_draw_triangles_rel(GlvMgr *mgr, Uint32 vertices_cnt, float *vertices, Uint32 per_vertex, float *colors, Uint32 per_color){
+    SDL_assert(mgr != NULL);
+
+    glUseProgram(mgr->draw_triangle_program.program);
+    glEnableVertexAttribArray(mgr->draw_triangle_program.vbo_pos);
+    glEnableVertexAttribArray(mgr->draw_triangle_program.vertex_color_pos);
+
+    glVertexAttribPointer(mgr->draw_triangle_program.vbo_pos, per_vertex, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(mgr->draw_triangle_program.vertex_color_pos, per_color, GL_FLOAT, GL_FALSE, 0, colors);
+    
+    glDrawArrays(GL_TRIANGLES, 0, vertices_cnt);
+
+    glDisableVertexAttribArray(mgr->draw_triangle_program.vbo_pos);
+    glDisableVertexAttribArray(mgr->draw_triangle_program.vertex_color_pos);
+    glUseProgram(0);
 }
 
 SDL_Window *glv_get_window(GlvMgr *mgr){
