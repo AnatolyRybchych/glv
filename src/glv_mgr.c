@@ -3,6 +3,8 @@
 static GLuint init_normal_vbo(void);
 static GLuint init_normal_uv_bo(void);
 
+static void glv_draw_polygon_sector_rel_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3], GLint viewport[4]);
+
 DrawTriangleProgram init_draw_triangle(GlvMgr *mgr){
     DrawTriangleProgram result;
 
@@ -374,40 +376,36 @@ void glv_draw_triangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], f
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
 
-    float center_px[2] = {vp[2] *center[0], vp[3] *center[1],};
-    float p1_px[2] = {vp[2] *p1[0], vp[3] *p1[1],};
-    float p2_px[2] = {vp[2] *p2[0], vp[3] *p2[1],};
-    float p3_px[2] = {vp[2] *p3[0], vp[3] *p3[1],};
+    glv_draw_polygon_sector_rel_(mgr, center, p1, p2, color, vp);
+    glv_draw_polygon_sector_rel_(mgr, center, p1, p3, color, vp);
+    glv_draw_polygon_sector_rel_(mgr, center, p2, p3, color, vp);
+}
 
-    float vertices[3 * 3 * 2] = {
-        p1[0], p1[1],
-        p2[0], p2[1],
-        center[0], center[1],
-
-        p1[0], p1[1],
-        p3[0], p3[1],
-        center[0], center[1],
-
-        p3[0], p3[1],
-        p2[0], p2[1],
-        center[0], center[1],
+static void glv_draw_polygon_sector_rel_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3], GLint viewport[4]){
+    float vertices[] = {
+        solid_p[0], solid_p[1],
+        border_p1[0], border_p1[1],
+        border_p2[0], border_p2[1],
     };
 
-    float colors[3 * 3 * 4] = {
-        color[0], color[1], color[2], 0.0,
-        color[0], color[1], color[2], 0.0,
-        color[0], color[1], color[2], line_point_dst(p1_px, p2_px, center_px) / 2.0f,
+    float p1_px[2] = {viewport[2] *border_p1[0], viewport[3] *border_p1[1],};
+    float p2_px[2] = {viewport[2] *border_p2[0], viewport[3] *border_p2[1],};
+    float solid_px[2] = {viewport[2] *solid_p[0], viewport[3] *solid_p[1],};
 
+    float colors[] = {
+        color[0], color[1], color[2], line_point_dst(p1_px, p2_px, solid_px) / 2.0f,
         color[0], color[1], color[2], 0.0,
-        color[0], color[1], color[2], 0.0,
-        color[0], color[1], color[2], line_point_dst(p1_px, p3_px, center_px) / 2.0f,
-
-        color[0], color[1], color[2], 0.0,
-        color[0], color[1], color[2], 0.0,
-        color[0], color[1], color[2], line_point_dst(p2_px, p3_px, center_px) / 2.0f,
+        color[0], color[1], color[2], 0.0
     };
 
-    glv_draw_triangles_rel(mgr, 3 * 3, vertices, 2, colors, 4);
+    glv_draw_triangles_rel(mgr, 3, vertices, 2, colors, 4);
+}
+
+void glv_draw_polygon_sector_rel(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3]){
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+
+    glv_draw_polygon_sector_rel_(mgr, solid_p, border_p1, border_p2, color, vp);
 }
 
 SDL_Window *glv_get_window(GlvMgr *mgr){

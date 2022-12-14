@@ -22,9 +22,9 @@ void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
         //SDL_Point size = glv_get_size(view);
         
         glv_draw_triangle_rel(mgr, 
-            (float[2]){-0.6, 0.8}, 
-            (float[2]){0.7, 0.3}, 
-            (float[2]){0.3, -0.8}, 
+            (float[2]){0.1, -0.1}, 
+            (float[2]){-1, 0}, 
+            (float[2]){1, 1}, 
             (float[3]){1.0, 0.0, 0.0}
         );
     }break;
