@@ -408,6 +408,33 @@ void glv_draw_polygon_sector_rel(GlvMgr *mgr, float solid_p[2], float border_p1[
     glv_draw_polygon_sector_rel_(mgr, solid_p, border_p1, border_p2, color, vp);
 }
 
+static int __cmp_by_x_axis(const void *first, const void *second){
+    return **(float**)first > **(float**)second ? 1 : -1;
+}
+
+static int __cmp_by_y_axis(const void *first, const void *second){
+    return (*(float**)first)[1] > (*(float**)second)[1] ? 1 : -1;
+}
+    
+void glv_draw_quadrangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color[3]){
+    float *v[] = {p1, p2, p3, p4};
+    qsort(v, 4, sizeof(float*), __cmp_by_x_axis); //[0,1] are left sides, [2, 3] are right
+    qsort(v + 0, 2, sizeof(float*), __cmp_by_y_axis);//[1] are left top, [0] are left bottom
+    qsort(v + 2, 2, sizeof(float*), __cmp_by_y_axis);//[3] are right top, [2] are right bottom
+
+    float center[2];
+
+    vec2_lerp(center, v[0], v[3], 0.5);
+
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+
+    glv_draw_polygon_sector_rel(mgr, center, v[0], v[1], color);// triangle {center, left top, letf bottom}
+    glv_draw_polygon_sector_rel(mgr, center, v[2], v[3], color);// triangle {center, right top, right bottom}
+    glv_draw_polygon_sector_rel(mgr, center, v[1], v[3], color);// triangle {center, left top, right top}
+    glv_draw_polygon_sector_rel(mgr, center, v[0], v[2], color);// triangle {center, left bottom, right bottom}
+}
+
 SDL_Window *glv_get_window(GlvMgr *mgr){
     return mgr->window;
 }

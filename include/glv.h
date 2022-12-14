@@ -54,6 +54,7 @@ GlvMgr *glv_get_mgr(View *view);
     void glv_draw_circle_rel(GlvMgr *mgr, Uint32 radius, float rel_x, float rel_y, float r, float g, float b, float a);
 
     //draw colored circle coords 0;0 is left topov viewport 
+    //smooth is too blurry is some kind of viewports, but actual circle is analog (has no any angles)
     void glv_draw_circle(GlvMgr *mgr, Uint32 radius, int x, int y, float r, float g, float b, float a);
 
     void glv_draw_triangles_rel(GlvMgr *mgr, Uint32 vertices_cnt, float *vertices, Uint32 per_vertex, float *colors, Uint32 per_color);
@@ -63,6 +64,8 @@ GlvMgr *glv_get_mgr(View *view);
 
     //to draw polygons with closed triangles sides (only border_p1 border_p2 line has smooth)
     void glv_draw_polygon_sector_rel(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3]);
+    
+    void glv_draw_quadrangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color[3]);
 
     //prints error using current error logger
     void glv_log_err(GlvMgr *mgr, const char *err);
