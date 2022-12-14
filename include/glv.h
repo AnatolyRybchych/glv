@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <glv/math/mvp.h>
 #include <glv/math/vec.h>
+#include <glv/math/line.h>
 
 typedef struct GlvMgr GlvMgr;
 typedef struct View View;
@@ -56,6 +57,8 @@ GlvMgr *glv_get_mgr(View *view);
     void glv_draw_circle(GlvMgr *mgr, Uint32 radius, int x, int y, float r, float g, float b, float a);
 
     void glv_draw_triangles_rel(GlvMgr *mgr, Uint32 vertices_cnt, float *vertices, Uint32 per_vertex, float *colors, Uint32 per_color);
+
+    void glv_draw_triangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float color[3]);
 
     //prints error using current error logger
     void glv_log_err(GlvMgr *mgr, const char *err);

@@ -7,6 +7,7 @@ objects		+= main.o
 objects		+= glv.o
 objects		+= mvp.o
 objects		+= vec.o
+objects		+= line.o
 objects		+= builtin_shaders.o
 objects		+= glv_mgr.o
 

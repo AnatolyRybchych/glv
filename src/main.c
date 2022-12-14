@@ -21,19 +21,12 @@ void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
 
         //SDL_Point size = glv_get_size(view);
         
-        float vertices[] = {
-            0.0, 1.0,
-            1.0, 0.0,
-            0.0, 0.0
-        };
-
-        float colors[] = {
-            1.0, 0.0, 0.0, 0, 
-            1.0, 0.0, 0.0, 0,
-            1.0, 0.0, 0.0, 200.0,
-        };
-
-        glv_draw_triangles_rel(mgr, 3, vertices, 2, colors, 4);
+        glv_draw_triangle_rel(mgr, 
+            (float[2]){-0.6, 0.8}, 
+            (float[2]){0.7, 0.3}, 
+            (float[2]){0.3, -0.8}, 
+            (float[3]){1.0, 0.0, 0.0}
+        );
     }break;
     }
 }
