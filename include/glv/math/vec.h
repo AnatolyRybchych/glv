@@ -1,6 +1,8 @@
 #ifndef __GLV_VEC_H
 #define __GLV_VEC_H
 
+#include <math.h>
+
 #define lerpf __glv_lerpf
 
 #define vec2_scale __glv_vec2_scale
@@ -30,6 +32,16 @@
 #define vec4_max __glv_vec4_max
 #define vec4_min __glv_vec4_min
 #define vec4_lerp __glv_vec4_lerp
+
+#define dstf __glv_dstf
+#define vec2_dst __glv_vec2_dst
+#define vec3_dst __glv_vec3_dst
+#define vec4_dst __glv_vec4_dst
+
+#define sqrdstf __glv_sqrdstf
+#define vec2_sqrdst __glv_vec2_sqrdst
+#define vec3_sqrdst __glv_vec3_sqrdst
+#define vec4_sqrdst __glv_vec4_sqrdst
 
 #define vec2_eq_scale(this, value) vec2_scale(this, this, value)
 #define vec2_eq_offset(this, value) vec2_offset(this, this, value)
@@ -62,6 +74,16 @@
 #define vec4_eq_lerp(this, another, progress) vec4_lerp(this, this, another, progress)
 
 float lerpf(float from, float to, float progress);
+
+float dstf(float value1, float value2);
+float vec2_dst(const float vec1[2], const float vec2[2]);
+float vec3_dst(const float vec1[3], const float vec2[3]);
+float vec4_dst(const float vec1[4], const float vec2[4]);
+
+float sqrdstf(float value1, float value2);
+float vec2_sqrdst(const float vec1[2], const float vec2[2]);
+float vec3_sqrdst(const float vec1[3], const float vec2[3]);
+float vec4_sqrdst(const float vec1[4], const float vec2[4]);
 
 void vec2_scale(float result[2], const float vec[2], float value);
 void vec2_offset(float result[2], const float vec[2], float value);

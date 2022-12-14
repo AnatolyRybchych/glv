@@ -27,6 +27,47 @@
     IMPL_VECN_OP_BIN(N, min)\
     IMPL_VECN_OP_BIN_EXTRA(N, lerp, float, progress)\
 
+float dstf(float value1, float value2){
+    float _res = value2 - value1;
+    return _res > 0 ? _res : -_res;
+}
+
+float vec2_dst(const float vec1[2], const float vec2[2]){
+    return sqrtf(vec2_sqrdst(vec1, vec2));
+}
+
+float vec3_dst(const float vec1[3], const float vec2[3]){
+    return sqrtf(vec3_sqrdst(vec1, vec2));
+}
+
+float vec4_dst(const float vec1[4], const float vec2[4]){
+    return sqrtf(vec4_sqrdst(vec1, vec2));
+}
+
+float sqrdstf(float value1, float value2){
+    float _res = value2 - value1;
+    return _res * _res;
+}
+
+float vec2_sqrdst(const float vec1[2], const float vec2[2]){
+    float vec[2] = {vec2[0] - vec1[0], vec2[1] - vec1[1]};
+    return vec[0] * vec[0] + vec[1] * vec[1];
+}
+
+float vec3_sqrdst(const float vec1[3], const float vec2[3]){
+    float vec[3] = {vec2[0] - vec1[0], vec2[1] - vec1[1], vec2[2] - vec1[2]};
+    return vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2];
+}
+
+float vec4_sqrdst(const float vec1[4], const float vec2[4]){
+    float vec[4] = {vec2[0] - vec1[0], vec2[1] - vec1[1], vec2[2] - vec1[2], vec2[3] - vec1[3]};
+    return vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2] + vec[3] * vec[3];
+}
+
+float lerpf(float from, float to, float progress){
+    return from + (to - from) / progress;
+}
+
 static void scale(float *result, const float *src, float scale){*result = *src * scale;}
 static void offset(float *result, const float *src, float offset){*result = *src + offset;}
 
@@ -38,10 +79,6 @@ static void max(float *result, const float *src1, const float *src2){*result = *
 static void min(float *result, const float *src1, const float *src2){*result = *src1 < *src2 ? *src1 : *src2;}
 
 static void lerp(float *result, const float *src1, const float *src2, float progress){*result = *src1 + (*src2 - *src1) * progress;}
-
-float lerpf(float from, float to, float progress){
-    return from + (to - from) / progress;
-}
 
 IMPL_VEC_DIMENTION(2)
 IMPL_VEC_DIMENTION(3)
