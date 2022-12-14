@@ -385,19 +385,19 @@ static void render(View *text_view){
     
     glViewport(0, 0, size.x, size.y);
 
+    float mat[16];
+    mvp_identity(mat);
+
     if(bg_texture != 0){
-        float mat[16];
-        mvp_identity(mat);
-        
         glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);  
         glv_draw_texture_mat(mgr, bg_texture, mat);
     }
     else{
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ZERO, GL_ZERO);  
+        glv_draw_texture_mat(mgr, fg_texture, mat);
     }
 
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_DST_ALPHA, GL_SRC_ALPHA, GL_DST_ALPHA);  
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_DST_ALPHA);  
 
     SDL_Point text_pos = get_text_pos(text_view);
 
