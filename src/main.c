@@ -20,7 +20,7 @@ void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
         // glv_draw_circle(mgr, 100, 200, 100, 1, 0, 0, 255);
 
         //SDL_Point size = glv_get_size(view);
-
+        
         float vertices[] = {
             0.0, 1.0,
             1.0, 0.0,

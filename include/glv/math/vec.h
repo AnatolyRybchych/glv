@@ -12,7 +12,6 @@
 #define vec2_max __glv_vec2_max
 #define vec2_min __glv_vec2_min
 #define vec2_lerp __glv_vec2_lerp
-
 #define vec3_scale __glv_vec3_scale
 #define vec3_offset __glv_vec3_offset
 #define vec3_add __glv_vec3_add
@@ -22,7 +21,6 @@
 #define vec3_max __glv_vec3_max
 #define vec3_min __glv_vec3_min
 #define vec3_lerp __glv_vec3_lerp
-
 #define vec4_scale __glv_vec4_scale
 #define vec4_offset __glv_vec4_offset
 #define vec4_add __glv_vec4_add
@@ -32,6 +30,36 @@
 #define vec4_max __glv_vec4_max
 #define vec4_min __glv_vec4_min
 #define vec4_lerp __glv_vec4_lerp
+
+#define vec2_eq_scale(this, value) vec2_scale(this, this, value)
+#define vec2_eq_offset(this, value) vec2_offset(this, this, value)
+#define vec2_eq_add(this, another) vec2_add(this, this, another)
+#define vec2_eq_sub(this, another) vec2_sub(this, this, another)
+#define vec2_eq_mul(this, another) vec2_mul(this, this, another)
+#define vec2_eq_div(this, another) vec2_div(this, this, another)
+#define vec2_eq_max(this, another) vec2_max(this, this, another)
+#define vec2_eq_min(this, another) vec2_min(this, this, another)
+#define vec2_eq_lerp(this, another, progress) vec2_lerp(this, this, another, progress)
+
+#define vec3_eq_scale(this, value) vec3_scale(this, this, value)
+#define vec3_eq_offset(this, value) vec3_offset(this, this, value)
+#define vec3_eq_add(this, another) vec3_add(this, this, another)
+#define vec3_eq_sub(this, another) vec3_sub(this, this, another)
+#define vec3_eq_mul(this, another) vec3_mul(this, this, another)
+#define vec3_eq_div(this, another) vec3_div(this, this, another)
+#define vec3_eq_max(this, another) vec3_max(this, this, another)
+#define vec3_eq_min(this, another) vec3_min(this, this, another)
+#define vec3_eq_lerp(this, another, progress) vec3_lerp(this, this, another, progress)
+
+#define vec4_eq_scale(this, vaue) vec4_scale(this, this, value)
+#define vec4_eq_offset(this, value) vec4_offset(this, this, value)
+#define vec4_eq_add(this, another) vec4_add(this, this, another)
+#define vec4_eq_sub(this, another) vec4_sub(this, this, another)
+#define vec4_eq_mul(this, another) vec4_mul(this, this, another)
+#define vec4_eq_div(this, another) vec4_div(this, this, another)
+#define vec4_eq_max(this, another) vec4_max(this, this, another)
+#define vec4_eq_min(this, another) vec4_min(this, this, another)
+#define vec4_eq_lerp(this, another, progress) vec4_lerp(this, this, another, progress)
 
 float lerpf(float from, float to, float progress);
 
