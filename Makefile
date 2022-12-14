@@ -6,6 +6,7 @@ CARGS		:= $(INCLUDE) -ggdb -Iinclude -Wall -Wextra -Werror -pedantic
 objects		+= main.o
 objects		+= glv.o
 objects		+= mvp.o
+objects		+= vec.o
 objects		+= builtin_shaders.o
 objects		+= glv_mgr.o
 

@@ -6,7 +6,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <stdbool.h>
-#include <mvp.h>
+#include <glv/math/mvp.h>
 
 typedef struct GlvMgr GlvMgr;
 typedef struct View View;
@@ -54,7 +54,6 @@ GlvMgr *glv_get_mgr(View *view);
     //draw colored circle coords 0;0 is left topov viewport 
     void glv_draw_circle(GlvMgr *mgr, Uint32 radius, int x, int y, float r, float g, float b, float a);
 
-    //color is vec4f
     void glv_draw_triangles_rel(GlvMgr *mgr, Uint32 vertices_cnt, float *vertices, Uint32 per_vertex, float *colors, Uint32 per_color);
 
     //prints error using current error logger
