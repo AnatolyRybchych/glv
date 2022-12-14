@@ -16,6 +16,7 @@ static void apply_data_size(View *margin, Uint32 *size);
 static void apply_set_absolute(View *margin, int m[4]);
 static void apply_set_realtive(View *margin, float m[4]);
 static void apply_set_abs_rel_operation(View *margin, GlvMarginOp op[4]);
+static void apply_get_docs(View *margin, ViewMsg *msg, GlvMsgDocs *docs);
 
 static void margin_rel_to_abs(int absolute[4], const float realtive[4], const SDL_Point *size);
 
@@ -90,6 +91,9 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
         apply_set_abs_rel_operation(view, in);
         align(view);
         break;
+    case VM_GET_DOCS:
+        apply_get_docs(view, in, out);
+        break;
     default:
         parent_proc(view, msg, in, out);
     }
@@ -126,6 +130,26 @@ static void apply_set_abs_rel_operation(View *margin, GlvMarginOp op[4]){
     data->op[1] = op[1];
     data->op[2] = op[2];
     data->op[3] = op[3];
+}
+
+static void apply_get_docs(View *margin, ViewMsg *msg, GlvMsgDocs *docs){
+    switch (*msg){
+    case VM_MARGIN_SET_ABSOLUTE:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_MARGIN_SET_ABSOLUTE),
+            "int absolute_margin[4]", "NULL", "set absolute margin values, this values will be used to apply margin after operation with relative margin");
+        break;
+    case VM_MARGIN_SET_RELATIVE:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_MARGIN_SET_ABSOLUTE),
+            "float relative_margin[4]", "NULL", "set relative margin values, this values will be used to apply margin after operation with absolute margin");
+        break;
+    case VM_MARGIN_SET_ABS_REL_OPERATION:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_MARGIN_SET_ABSOLUTE),
+            "GlvMarginOp margin_abs_rel_operation[4]", "NULL", "set operaton for each pair of raelative-absulute margins");
+        break;
+    default:
+        parent_proc(margin, VM_GET_DOCS, msg, docs);
+        break;
+    }
 }
 
 static void margin_rel_to_abs(int absolute[4], const float realtive[4], const SDL_Point *size){
