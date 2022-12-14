@@ -72,6 +72,9 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
             align(view);
         }
         break;
+    case VM_SET_BG:
+        glv_swap_texture_with_bg(view);
+        break;
     case VM_RESIZE:
         align(view);
         break;

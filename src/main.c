@@ -58,6 +58,8 @@ void init_spa(View *view, void *root_context){
     glv_set_background(text2, glv_gen_texture_solid_color(120, 110, 100, 255));
     glv_set_background(text3, glv_gen_texture_solid_color(100, 110, 90, 255));
 
+    glv_set_background(text1_margin, glv_gen_texture_solid_color(255, 0, 0, 255));
+
     glv_set_background(view, glv_gen_texture_solid_color(20, 20, 20, 255));
 }
 
