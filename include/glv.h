@@ -7,6 +7,7 @@
 #include FT_FREETYPE_H
 #include <stdbool.h>
 #include <glv/math/mvp.h>
+#include <glv/math/vec.h>
 
 typedef struct GlvMgr GlvMgr;
 typedef struct View View;
