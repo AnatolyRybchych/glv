@@ -17,6 +17,7 @@ objects		+= text_view.o
 objects		+= stack_panel.o
 objects		+= canvas.o
 objects		+= margin.o
+objects		+= menu_panel.o
 
 build:$(addprefix obj/, $(objects))
 	gcc $(CARGS) -o run $^ -lGL -lSDL2 -lm -lfreetype
