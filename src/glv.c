@@ -813,6 +813,7 @@ static void apply_events(GlvMgr *mgr){
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         draw_views_recursive(mgr->root_view);
         SDL_GL_SwapWindow(mgr->window);
     }
