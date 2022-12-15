@@ -36,7 +36,7 @@ void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
         FT_Face face = glv_get_freetype_face(mgr, 0);
         FT_Set_Pixel_Sizes(face, 0, 48);
 
-        glv_draw_text(mgr, face, L"text", (int[2]){0, 0}, 0);
+        glv_draw_text(mgr, face, L"ttext", (int[2]){0, 0}, 0);
     }break;
     }
 }

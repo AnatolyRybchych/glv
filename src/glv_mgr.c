@@ -6,6 +6,12 @@ static GLuint init_normal_uv_bo(void);
 static void glv_draw_polygon_sector_rel_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3], GLint viewport[4]);
 static void glv_draw_polygon_sector_rel_polycolor_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3], GLint viewport[4]);
 
+static void __init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const int pos[2], GLint viewport[4]);
+static void __init_glyph_text_coords(float text_coords[12], const float vbo[12]);
+
+static int __cmp_by_x_axis(const void *first, const void *second);
+static int __cmp_by_y_axis(const void *first, const void *second);
+
 DrawTextProgram init_draw_text(GlvMgr *mgr){
     DrawTextProgram result;
 
@@ -199,6 +205,8 @@ void glv_redraw_window(GlvMgr *mgr){
 
 void glv_draw_texture_mat2(GlvMgr *mgr, GLuint texture, float mvp[4*4], float tex_mvp[4*4]){
     SDL_assert(mgr != NULL);
+    SDL_assert(mvp != NULL);
+    SDL_assert(tex_mvp != NULL);
 
     DrawTextureProgram *p = &mgr->draw_texture_program;
 
@@ -231,6 +239,7 @@ void glv_draw_texture_mat2(GlvMgr *mgr, GLuint texture, float mvp[4*4], float te
 
 void glv_dump_texture(GlvMgr *mgr, const char *file, GLuint texture, Uint32 bmp_width, Uint32 bmp_height){
     SDL_assert(mgr != NULL);
+    SDL_assert(file != NULL);
 
     GLuint curr_fb;
     GLuint curr_texture;
@@ -287,6 +296,7 @@ void glv_dump_texture(GlvMgr *mgr, const char *file, GLuint texture, Uint32 bmp_
 
 void glv_draw_texture_mat(GlvMgr *mgr, GLuint texture, float mvp[4*4]){
     SDL_assert(mgr != NULL);
+    SDL_assert(mvp != NULL);
 
     float tex_mvp[4*4];
     mvp_identity(tex_mvp);
@@ -295,6 +305,8 @@ void glv_draw_texture_mat(GlvMgr *mgr, GLuint texture, float mvp[4*4]){
 
 void glv_draw_texture_st(GlvMgr *mgr, GLuint texture, float scale[3], float translate[3], float angle){
     SDL_assert(mgr != NULL);
+    SDL_assert(scale != NULL);
+    SDL_assert(translate != NULL);
 
     float mvp[4*4];
     mvp_identity(mvp);
@@ -307,6 +319,8 @@ void glv_draw_texture_st(GlvMgr *mgr, GLuint texture, float scale[3], float tran
 
 void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src, const SDL_Rect *dst){
     SDL_assert(mgr != NULL);
+    SDL_assert(src != NULL);
+    SDL_assert(dst != NULL);
 
     float mvp[4*4];
     float tex_mvp[4*4];
@@ -380,6 +394,8 @@ void glv_draw_circle(GlvMgr *mgr, Uint32 radius, int x, int y, float r, float g,
 
 void glv_draw_triangles_rel(GlvMgr *mgr, Uint32 vertices_cnt, float *vertices, Uint32 per_vertex, float *colors, Uint32 per_color){
     SDL_assert(mgr != NULL);
+    SDL_assert(vertices != NULL);
+    SDL_assert(colors != NULL);
 
     glUseProgram(mgr->draw_triangle_program.program);
     glEnableVertexAttribArray(mgr->draw_triangle_program.vbo_pos);
@@ -410,6 +426,14 @@ void glv_draw_triangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], f
 }
 
 void glv_draw_triangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float color_p1[3], float color_p2[3], float color_p3[3]){
+    SDL_assert(mgr != NULL);
+    SDL_assert(p1 != NULL);
+    SDL_assert(p2 != NULL);
+    SDL_assert(p3 != NULL);
+    SDL_assert(color_p1 != NULL);
+    SDL_assert(color_p2 != NULL);
+    SDL_assert(color_p3 != NULL);
+
     float center[2];
 
     vec2_lerp(center, p1, p2, 0.5);
@@ -433,6 +457,15 @@ static void glv_draw_polygon_sector_rel_(GlvMgr *mgr, float solid_p[2], float bo
 }
 
 static void glv_draw_polygon_sector_rel_polycolor_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3], GLint viewport[4]){
+    SDL_assert(mgr != NULL);
+    SDL_assert(solid_p != NULL);
+    SDL_assert(border_p1 != NULL);
+    SDL_assert(border_p2 != NULL);
+    SDL_assert(color_sp != NULL);
+    SDL_assert(color_p1 != NULL);
+    SDL_assert(color_p2 != NULL);
+    SDL_assert(viewport != NULL);
+
     float vertices[] = {
         solid_p[0], solid_p[1],
         border_p1[0], border_p1[1],
@@ -453,6 +486,12 @@ static void glv_draw_polygon_sector_rel_polycolor_(GlvMgr *mgr, float solid_p[2]
 }
 
 void glv_draw_polygon_sector_rel(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3]){
+    SDL_assert(mgr != NULL);
+    SDL_assert(solid_p != NULL);
+    SDL_assert(border_p1 != NULL);
+    SDL_assert(border_p2 != NULL);
+    SDL_assert(color != NULL);
+
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
 
@@ -460,21 +499,28 @@ void glv_draw_polygon_sector_rel(GlvMgr *mgr, float solid_p[2], float border_p1[
 }
 
 void glv_draw_polygon_sector_rel_polycolor(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3]){
+    SDL_assert(mgr != NULL);
+    SDL_assert(solid_p != NULL);
+    SDL_assert(border_p1 != NULL);
+    SDL_assert(border_p2 != NULL);
+    SDL_assert(color_sp != NULL);
+    SDL_assert(color_p1 != NULL);
+    SDL_assert(color_p2 != NULL);
+
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
 
     glv_draw_polygon_sector_rel_polycolor_(mgr, solid_p, border_p1, border_p2, color_sp, color_p1, color_p2, vp);
 }
-
-static int __cmp_by_x_axis(const void *first, const void *second){
-    return **(float**)first > **(float**)second ? 1 : -1;
-}
-
-static int __cmp_by_y_axis(const void *first, const void *second){
-    return (*(float**)first)[1] > (*(float**)second)[1] ? 1 : -1;
-}
     
 void glv_draw_quadrangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color[3]){
+    SDL_assert(mgr != NULL);
+    SDL_assert(p1 != NULL);
+    SDL_assert(p2 != NULL);
+    SDL_assert(p3 != NULL);
+    SDL_assert(p4 != NULL);
+    SDL_assert(color != NULL);
+
     float *v[] = {p1, p2, p3, p4};
     qsort(v, 4, sizeof(float*), __cmp_by_x_axis); //[0,1] are left sides, [2, 3] are right
     qsort(v + 0, 2, sizeof(float*), __cmp_by_y_axis);//[1] are left top, [0] are left bottom
@@ -494,6 +540,17 @@ void glv_draw_quadrangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2],
 }
 
 void glv_draw_quadrangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color_p1[3], float color_p2[3], float color_p3[3], float color_p4[3]){
+    SDL_assert(mgr != NULL);
+    SDL_assert(color_p1 != NULL);
+    SDL_assert(p1 != NULL);
+    SDL_assert(p2 != NULL);
+    SDL_assert(p3 != NULL);
+    SDL_assert(p4 != NULL);
+    SDL_assert(color_p1 != NULL);
+    SDL_assert(color_p2 != NULL);
+    SDL_assert(color_p3 != NULL);
+    SDL_assert(color_p4 != NULL);
+
     float *v[] = {p1, color_p1, p2, color_p2, p3, color_p3, p4, color_p4};
     qsort(v, 4, sizeof(float*) * 2, __cmp_by_x_axis); //[0,1] are left sides, [2, 3] are right
     qsort(v + 0, 2, sizeof(float*) * 2, __cmp_by_y_axis);//[1] are left top, [0] are left bottom
@@ -514,38 +571,20 @@ void glv_draw_quadrangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], fl
     glv_draw_polygon_sector_rel_polycolor_(mgr, center, v[0], v[4], center_color, v[1], v[5], vp);// triangle {center, left bottom, right bottom}
 }
 
-static void __init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const int pos[2], GLint viewport[4]){
-    SDL_FRect g_vp = {
-        .x = (pos[0] + glyph->metrics.horiBearingX / 64) 
-                / (float)viewport[2] * 2.0 - 1.0, 
-        
-        .y = (viewport[3] - (pos[1] + (glyph->metrics.vertAdvance / 2 + glyph->metrics.height - glyph->metrics.horiBearingY) / 64)) 
-                / (float)viewport[3] * 2.0 - 1.0,
-        
-        .w = glyph->bitmap.width * 2
-            / (float)viewport[2],
-        
-        .h = glyph->bitmap.rows * 2
-            / (float)viewport[3]
-    };
-
-    float result[] = {
-        g_vp.x, g_vp.y + g_vp.h, g_vp.x + g_vp.w, g_vp.y + g_vp.h, g_vp.x, g_vp.y,
-        g_vp.x + g_vp.w, g_vp.y, g_vp.x + g_vp.w, g_vp.y + g_vp.h, g_vp.x, g_vp.y,
-    };
-
-    memcpy(vbo, result, sizeof(result));
-}
-
 void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground){
+    SDL_assert(mgr != NULL);
+    SDL_assert(text != NULL);
+    SDL_assert(face != NULL);
+    SDL_assert(pos != NULL);
+
     static float glyph_coords[] = {
         0,0, 1,0, 0, 1,
         1,1, 1,0, 0, 1,};
 
     wchar_t curr;
-    wchar_t prev = 0;
     FT_GlyphSlot glyph;
     float vertex_p[12];
+    float tex_coords[12];
     GLint vp[4];
     int p[2] = {
         [0] = pos[0],
@@ -562,36 +601,35 @@ void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos
 
     while (*text){
         curr = *text;
-        if(curr != prev){
-            FT_Load_Char(face, curr, FT_LOAD_RENDER);
-            glyph = face->glyph;
-            __init_glyph_vbo(vertex_p, glyph, p, vp);
+        FT_Load_Char(face, curr, FT_LOAD_RENDER);
+        glyph = face->glyph;
+        __init_glyph_vbo(vertex_p, glyph, p, vp);
+        __init_glyph_text_coords(tex_coords, vertex_p);
 
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, mgr->draw_text_program.glyph_texture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, glyph->bitmap.width, glyph->bitmap.rows, 
-                                        0, GL_ALPHA, GL_UNSIGNED_BYTE, glyph->bitmap.buffer);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, mgr->draw_text_program.glyph_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, glyph->bitmap.width, glyph->bitmap.rows, 
+                                    0, GL_ALPHA, GL_UNSIGNED_BYTE, glyph->bitmap.buffer);
 
-            glUniform1i(mgr->draw_text_program.loc_glyph_tex, 1);
-        }
+        glUniform1i(mgr->draw_text_program.loc_glyph_tex, 1);
 
         glEnableVertexAttribArray(mgr->draw_text_program.loc_glyph_coords);
-        //glEnableVertexAttribArray(singleton->loc_tex_coords);
+        glEnableVertexAttribArray(mgr->draw_text_program.loc_tex_coords);
         glEnableVertexAttribArray(mgr->draw_text_program.loc_vertex_p);
 
         glVertexAttribPointer(mgr->draw_text_program.loc_glyph_coords, 2, GL_FLOAT, GL_FALSE, 0, glyph_coords);
         glVertexAttribPointer(mgr->draw_text_program.loc_vertex_p, 2, GL_FLOAT, GL_FALSE, 0, vertex_p);
+        glVertexAttribPointer(mgr->draw_text_program.loc_tex_coords, 2, GL_FLOAT, GL_FALSE, 0, tex_coords);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glDisableVertexAttribArray(mgr->draw_text_program.loc_glyph_coords);
-        //glDisableVertexAttribArray(singleton->loc_tex_coords);
+        glDisableVertexAttribArray(mgr->draw_text_program.loc_tex_coords);
         glDisableVertexAttribArray(mgr->draw_text_program.loc_vertex_p);
 
         p[0] += glyph->metrics.horiAdvance / 64;
         if(p[0] > vp[2]) break;
 
-        prev = curr;
         text++;
     }
 
@@ -599,7 +637,26 @@ void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos
     glUseProgram(0);
 }
 
+Uint32 glv_calc_text_width(FT_Face face, const wchar_t *text){
+    SDL_assert(face != NULL);
+    SDL_assert(text != NULL);
+
+    const wchar_t *text_ptr = text;
+
+    int curr_x = 0;
+    while (*text_ptr != 0){
+        FT_Load_Char(face, *text_ptr, FT_LOAD_RENDER);
+
+        FT_GlyphSlot glyph = face->glyph;
+        curr_x += glyph->metrics.horiAdvance / 64;
+        text_ptr++;
+    }
+
+    return curr_x;
+}
+
 SDL_Window *glv_get_window(GlvMgr *mgr){
+    SDL_assert(mgr != NULL);
     return mgr->window;
 }
 
@@ -681,9 +738,46 @@ void glv_set_sdl_event_handler(GlvMgr *mgr, void(*on_sdl_event)(View *root, cons
 }
 
 void glv_log_err(GlvMgr *mgr, const char *err){
+    SDL_assert(mgr != NULL);
     if(err == NULL){
         err = "log(NULL)";
     }
     mgr->logger_proc(mgr, err);
 }
 
+static void __init_glyph_text_coords(float text_coords[12], const float vbo[12]){
+    for (int i = 0; i < 12; i++){
+        text_coords[i] = (vbo[i] + 1.0) / 2.0;
+    }
+}
+
+static void __init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const int pos[2], GLint viewport[4]){
+    SDL_FRect g_vp = {
+        .x = (pos[0] + glyph->metrics.horiBearingX / 64) 
+                / (float)viewport[2] * 2.0 - 1.0, 
+        
+        .y = (viewport[3] - (pos[1] + (glyph->metrics.vertAdvance / 2 + glyph->metrics.height - glyph->metrics.horiBearingY) / 64)) 
+                / (float)viewport[3] * 2.0 - 1.0,
+        
+        .w = glyph->bitmap.width * 2
+            / (float)viewport[2],
+        
+        .h = glyph->bitmap.rows * 2
+            / (float)viewport[3]
+    };
+
+    float result[] = {
+        g_vp.x, g_vp.y + g_vp.h, g_vp.x + g_vp.w, g_vp.y + g_vp.h, g_vp.x, g_vp.y,
+        g_vp.x + g_vp.w, g_vp.y, g_vp.x + g_vp.w, g_vp.y + g_vp.h, g_vp.x, g_vp.y,
+    };
+
+    memcpy(vbo, result, sizeof(result));
+}
+
+static int __cmp_by_x_axis(const void *first, const void *second){
+    return **(float**)first > **(float**)second ? 1 : -1;
+}
+
+static int __cmp_by_y_axis(const void *first, const void *second){
+    return (*(float**)first)[1] > (*(float**)second)[1] ? 1 : -1;
+}

@@ -70,6 +70,7 @@ GlvMgr *glv_get_mgr(View *view);
     void glv_draw_quadrangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color_p1[3], float color_p2[3], float color_p3[3], float color_p4[3]);
 
     void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground);
+    Uint32 glv_calc_text_width(FT_Face face, const wchar_t *text);
 
     //prints error using current error logger
     void glv_log_err(GlvMgr *mgr, const char *err);
