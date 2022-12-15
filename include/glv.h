@@ -9,6 +9,7 @@
 #include <glv/math/mvp.h>
 #include <glv/math/vec.h>
 #include <glv/math/line.h>
+#include <glv/math/coords.h>
 
 typedef struct GlvMgr GlvMgr;
 typedef struct View View;
