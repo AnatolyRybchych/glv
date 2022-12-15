@@ -32,6 +32,11 @@ void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
             (float[3]){0.0, 0.0, 1.0},
             (float[3]){1.0, 1.0, 0.0}
         );
+
+        FT_Face face = glv_get_freetype_face(mgr, 0);
+        FT_Set_Pixel_Sizes(face, 0, 48);
+
+        glv_draw_text(mgr, face, L"text", (int[2]){0, 0}, 0);
     }break;
     }
 }
@@ -41,8 +46,8 @@ void init_spa(View *view, void *root_context){
     root_context = root_context;//unused
     view = view;
     
-    // GlvMgr *mgr = glv_get_mgr(view);
-    // glv_new_freetype_face(mgr, "Sarai.ttf", 0);
+    GlvMgr *mgr = glv_get_mgr(view);
+    glv_new_freetype_face(mgr, "Sarai.ttf", 0);
 
     // glv_stack_panel_set_vertical(view);
 

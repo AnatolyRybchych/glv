@@ -15,6 +15,8 @@
 #define init_draw_triangle __glv_private_init_draw_triangle_program
 #define free_draw_triangle __glv_private_free_draw_triangle_program
 
+#define init_draw_text __glv_private_init_draw_glyph_program
+#define free_draw_text __glv_private_free_draw_glyph_program
 
 #define draw_texture_vert __glv_private_draw_texture_vert
 #define draw_texture_frag __glv_private_draw_texture_frag
@@ -27,7 +29,6 @@
 
 #define draw_triangle_vert __glv_private_triangle_vert
 #define draw_triangle_frag __glv_private_triangle_frag
-
 
 
 #endif //GLV_PRIVATE_H

@@ -6,6 +6,33 @@ static GLuint init_normal_uv_bo(void);
 static void glv_draw_polygon_sector_rel_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3], GLint viewport[4]);
 static void glv_draw_polygon_sector_rel_polycolor_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3], GLint viewport[4]);
 
+DrawTextProgram init_draw_text(GlvMgr *mgr){
+    DrawTextProgram result;
+
+    glGenTextures(1, &result.glyph_texture);
+    glBindTexture(GL_TEXTURE_2D, result.glyph_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glv_build_program_or_quit_err(
+        mgr, draw_glyph_vert, draw_glyph_frag, &result.prog_render_glyph);
+
+    result.loc_vertex_p = glGetAttribLocation(result.prog_render_glyph, "vertex_p");
+    result.loc_tex_coords = glGetAttribLocation(result.prog_render_glyph, "tex_coords");
+    result.loc_glyph_coords = glGetAttribLocation(result.prog_render_glyph, "glyph_coords");
+
+    result.loc_tex = glGetUniformLocation(result.prog_render_glyph, "tex");
+    result.loc_glyph_tex = glGetUniformLocation(result.prog_render_glyph, "glyph_tex");
+
+    return result;
+}
+
+void free_draw_text(DrawTextProgram *prog){
+    glDeleteTextures(1, &prog->glyph_texture);
+    glDeleteProgram(prog->prog_render_glyph);
+}
+
 DrawTriangleProgram init_draw_triangle(GlvMgr *mgr){
     DrawTriangleProgram result;
 
@@ -485,6 +512,91 @@ void glv_draw_quadrangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], fl
     glv_draw_polygon_sector_rel_polycolor_(mgr, center, v[4], v[6], center_color, v[5], v[7], vp);// triangle {center, right top, right bottom}
     glv_draw_polygon_sector_rel_polycolor_(mgr, center, v[2], v[6], center_color, v[3], v[7], vp);// triangle {center, left top, right top}
     glv_draw_polygon_sector_rel_polycolor_(mgr, center, v[0], v[4], center_color, v[1], v[5], vp);// triangle {center, left bottom, right bottom}
+}
+
+static void __init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const int pos[2], GLint viewport[4]){
+    SDL_FRect g_vp = {
+        .x = (pos[0] + glyph->metrics.horiBearingX / 64) 
+                / (float)viewport[2] * 2.0 - 1.0, 
+        
+        .y = (viewport[3] - (pos[1] + (glyph->metrics.vertAdvance / 2 + glyph->metrics.height - glyph->metrics.horiBearingY) / 64)) 
+                / (float)viewport[3] * 2.0 - 1.0,
+        
+        .w = glyph->bitmap.width * 2
+            / (float)viewport[2],
+        
+        .h = glyph->bitmap.rows * 2
+            / (float)viewport[3]
+    };
+
+    float result[] = {
+        g_vp.x, g_vp.y + g_vp.h, g_vp.x + g_vp.w, g_vp.y + g_vp.h, g_vp.x, g_vp.y,
+        g_vp.x + g_vp.w, g_vp.y, g_vp.x + g_vp.w, g_vp.y + g_vp.h, g_vp.x, g_vp.y,
+    };
+
+    memcpy(vbo, result, sizeof(result));
+}
+
+void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground){
+    static float glyph_coords[] = {
+        0,0, 1,0, 0, 1,
+        1,1, 1,0, 0, 1,};
+
+    wchar_t curr;
+    wchar_t prev = 0;
+    FT_GlyphSlot glyph;
+    float vertex_p[12];
+    GLint vp[4];
+    int p[2] = {
+        [0] = pos[0],
+        [1] = pos[1],
+    };
+
+    glGetIntegerv(GL_VIEWPORT, vp);
+
+    glUseProgram(mgr->draw_text_program.prog_render_glyph);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, foreground);
+    glUniform1i(mgr->draw_text_program.loc_tex, 0);
+
+    while (*text){
+        curr = *text;
+        if(curr != prev){
+            FT_Load_Char(face, curr, FT_LOAD_RENDER);
+            glyph = face->glyph;
+            __init_glyph_vbo(vertex_p, glyph, p, vp);
+
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, mgr->draw_text_program.glyph_texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, glyph->bitmap.width, glyph->bitmap.rows, 
+                                        0, GL_ALPHA, GL_UNSIGNED_BYTE, glyph->bitmap.buffer);
+
+            glUniform1i(mgr->draw_text_program.loc_glyph_tex, 1);
+        }
+
+        glEnableVertexAttribArray(mgr->draw_text_program.loc_glyph_coords);
+        //glEnableVertexAttribArray(singleton->loc_tex_coords);
+        glEnableVertexAttribArray(mgr->draw_text_program.loc_vertex_p);
+
+        glVertexAttribPointer(mgr->draw_text_program.loc_glyph_coords, 2, GL_FLOAT, GL_FALSE, 0, glyph_coords);
+        glVertexAttribPointer(mgr->draw_text_program.loc_vertex_p, 2, GL_FLOAT, GL_FALSE, 0, vertex_p);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glDisableVertexAttribArray(mgr->draw_text_program.loc_glyph_coords);
+        //glDisableVertexAttribArray(singleton->loc_tex_coords);
+        glDisableVertexAttribArray(mgr->draw_text_program.loc_vertex_p);
+
+        p[0] += glyph->metrics.horiAdvance / 64;
+        if(p[0] > vp[2]) break;
+
+        prev = curr;
+        text++;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgram(0);
 }
 
 SDL_Window *glv_get_window(GlvMgr *mgr){

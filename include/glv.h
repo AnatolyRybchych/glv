@@ -49,7 +49,6 @@ GlvMgr *glv_get_mgr(View *view);
 
     //draw src rect subtexture of texture in dst rect
     void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src, const SDL_Rect *dst);
-
     
     void glv_draw_circle_rel(GlvMgr *mgr, Uint32 radius, float rel_x, float rel_y, float r, float g, float b, float a);
 
@@ -69,6 +68,8 @@ GlvMgr *glv_get_mgr(View *view);
     
     void glv_draw_quadrangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color[3]);
     void glv_draw_quadrangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color_p1[3], float color_p2[3], float color_p3[3], float color_p4[3]);
+
+    void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground);
 
     //prints error using current error logger
     void glv_log_err(GlvMgr *mgr, const char *err);
