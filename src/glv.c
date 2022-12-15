@@ -1,5 +1,12 @@
 #include "_glv.h"
 
+#define __DOC_CASE(MESSAGE, INPUT, OUTPUT, DESCRIPTION)\
+    case MESSAGE:\
+        glv_write_docs(\
+        docs, MESSAGE,\
+        SDL_STRINGIFY_ARG(MESSAGE),\
+        INPUT, OUTPUT, DESCRIPTION); break;
+
 static void create_mgr(GlvMgr *mgr);
 static int delete_mgr(GlvMgr *mgr);
 static void handle_events(GlvMgr *mgr, const SDL_Event *ev);
@@ -17,7 +24,7 @@ static bool __init_freetype2(GlvMgr *mgr);
 static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 static void __init_texture_1x1(View *view);
 static void __init_framebuffer(View *view);
-static void __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev);
+static bool __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev);
 static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs);
 static void __draw_views_recursive(View *view, SDL_Rect parent);
 static void __manage_default(View *view, ViewMsg msg, void *event_args, void *user_context);
@@ -761,8 +768,8 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
     
     switch (ev->type){
         case SDL_WINDOWEVENT:
-            __handle_winevents(mgr, &ev->window);
-        return;
+            if(__handle_winevents(mgr, &ev->window)) return;
+            else break;
         case SDL_QUIT:{
             mgr->is_running = false;
         }return;
@@ -776,6 +783,7 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             free(glv_ev->data);
         } return;
         case SDL_MOUSEWHEEL:{
+            if(ev->wheel.windowID != mgr->wind_id) return;
             GlvWheel wheel = {
                 .direction = ev->wheel.direction,
                 .which = ev->wheel.which,
@@ -783,7 +791,7 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
                 .preciseY = ev->wheel.preciseY,
             };
             __enum_call_mouse_wheel(mgr->root_view, &wheel);
-        } break;
+        } return;
         case SDL_MOUSEBUTTONDOWN:
             if(ev->button.windowID != mgr->wind_id) return;
             __handle_mouse_button(mgr->root_view, VM_MOUSE_DOWN, &ev->button);
@@ -806,8 +814,7 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
         }return;
         case SDL_TEXTINPUT:{
             if(ev->text.windowID) return;
-            glv_push_event(mgr->root_view, VM_TEXT, (char*)&(ev->text.text[0]), sizeof(char[32]));
-            glv_enum_focused_childs(mgr->root_view, __enum_call_textinput_event, (char *)ev->text.text);
+            __enum_call_textinput_event(mgr->root_view, (char*)&(ev->text.text[0]));
         }return;
         case SDL_TEXTEDITING:{
             if(ev->edit.windowID) return;
@@ -815,11 +822,8 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             memcpy(te.composition, ev->edit.text, sizeof(char[32]));
             te.cursor = ev->edit.start;
             te.selection_len = ev->edit.length;
-            glv_push_event(mgr->root_view, VM_TEXT_EDITING, &te, sizeof(GlvTextEditing));
-            
-            glv_enum_childs(mgr->root_view, __enum_call_textediting_event, &te);
+            __enum_call_textediting_event(mgr->root_view, &te);
         }return;
-        
     }
     if(mgr->root_view != NULL){
         __enum_call_sdl_redirect_event(mgr->root_view, (void*)ev);
@@ -853,15 +857,6 @@ static void draw_views_recursive(View *view){
     
     __draw_views_recursive(view, parent);
 }
-
-#define __DOC_CASE(MESSAGE, INPUT, OUTPUT, DESCRIPTION)\
-    case MESSAGE:\
-        glv_write_docs(\
-        docs, MESSAGE,\
-        SDL_STRINGIFY_ARG(MESSAGE),\
-        INPUT, OUTPUT, DESCRIPTION); break;
-
-
 
 static void unfocus_all_excepting(View *view, View *exception){
     if(view->is_focused == false) return;
@@ -996,17 +991,17 @@ static void __init_framebuffer(View *view){
 }
 
 
-static void __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
+static bool __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
     if(mgr->root_view == NULL){
         glv_log_err(mgr, "root view is NULL");
-        return;
+        return true;
     }
-    else if(ev->windowID != mgr->wind_id) return;
+    else if(ev->windowID != mgr->wind_id) return false;
 
     switch (ev->event){
     case SDL_WINDOWEVENT_EXPOSED:
         mgr->required_redraw = true;
-        break;
+        return true;
     case SDL_WINDOWEVENT_SIZE_CHANGED:{
         SDL_Point new_size = {
             .x = mgr->root_view->w = ev->data1,
@@ -1014,7 +1009,7 @@ static void __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
         };
 
         glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
-    }break;
+    }return true;
     case SDL_WINDOWEVENT_SHOWN:{
         SDL_Point new_pos;
         SDL_Point new_size;
@@ -1027,20 +1022,21 @@ static void __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
 
         glv_push_event(mgr->root_view, VM_MOVE, &new_size, sizeof(new_pos));
         glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
-    }break;
+    }return true;
     case SDL_WINDOWEVENT_HIDDEN:{
         mgr->root_view->is_visible = false;
         glv_push_event(mgr->root_view, VM_HIDE, NULL, 0);
-    }break;
+    }return true;
     case SDL_WINDOWEVENT_FOCUS_GAINED:{
         mgr->root_view->is_focused = true;
         glv_push_event(mgr->root_view, VM_FOCUS, NULL, 0);
-    }break;
+    }return true;
     case SDL_WINDOWEVENT_FOCUS_LOST:{
         mgr->root_view->is_focused = false;
         glv_push_event(mgr->root_view, VM_UNFOCUS, NULL, 0);
-    }break;
+    }return true;
     }
+    return false;
 }
 
 static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
@@ -1063,7 +1059,7 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_KEY_DOWN, "const GlvKeyDown *args", "NULL", "calls on key down and view is focused");
         __DOC_CASE(VM_KEY_UP, "const GlvKeyUp *args", "NULL", "calls on key up and view is focused");
         __DOC_CASE(VM_CHILD_RESIZE, "GlvChildChanged* view", "NULL", "calls on child resize");
-        __DOC_CASE(VM_CHILD_MOVE, "GlvChildChanged* view", "NULL", "calls on child move");
+        __DOC_CASE(VM_CHILD_MOVE, "GlvChildChanged* view", "NULL", "calls on c__enum_call_sdl_redirect_eventhild move");
         __DOC_CASE(VM_CHILD_CREATE, "GlvChildChanged* view", "NULL", "calls on child create");
         __DOC_CASE(VM_CHILD_DELETE, "GlvChildChanged* view", "NULL", "calls on child delete");
         __DOC_CASE(VM_CHILD_HIDE, "GlvChildChanged* view", "NULL", "calls on child hide");
@@ -1252,12 +1248,14 @@ static void __enum_call_key_event(View *view, void *args_ptr){
 }
 
 static void __enum_call_textinput_event(View *view, void *args_ptr){
-    glv_push_event(view, VM_TEXT, args_ptr, sizeof(char[32]));
+    glv_call_event(view, VM_TEXT, args_ptr, NULL);
+    glv_call_manage(view, VM_TEXT, args_ptr);
     glv_enum_focused_childs(view, __enum_call_textinput_event, args_ptr);
 }
 
 static void __enum_call_textediting_event(View *view, void *args_ptr){
-    glv_push_event(view, VM_TEXT_EDITING, args_ptr, sizeof(GlvTextEditing));
+    glv_call_event(view, VM_TEXT_EDITING, args_ptr, NULL);
+    glv_call_manage(view, VM_TEXT_EDITING, args_ptr);
     glv_enum_childs(view, __enum_call_textediting_event, args_ptr);
 }
 
@@ -1268,7 +1266,8 @@ static void __enum_call_sdl_redirect_event(View *view, void *args_ptr){
 }
 
 static void __enum_call_mouse_wheel(View *view, void *args_ptr){
-    glv_push_event(view, VM_MOUSE_WHEEL, args_ptr, sizeof(GlvWheel));
+    glv_call_event(view, VM_MOUSE_WHEEL, args_ptr, NULL);
+    glv_call_manage(view, VM_MOUSE_WHEEL, args_ptr);
     glv_enum_hovered_childs(view, __enum_call_mouse_wheel, args_ptr);
 }
 
