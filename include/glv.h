@@ -28,6 +28,7 @@ typedef struct GlvEventKey GlvKeyUp;
 typedef struct GlvEventKey GlvKeyDown;
 typedef struct GlvEventTextEditing GlvTextEditing;
 typedef struct GlvEventChildChanged GlvChildChanged;
+typedef struct GlvEventWheel GlvWheel;
 
 GlvMgr *glv_get_mgr(View *view);
     void glv_set_error_logger(GlvMgr *mgr, void (*logger_proc)(GlvMgr *mgr, const char *err));
@@ -102,6 +103,9 @@ void glv_enum_visible_childs(View *view, void(*enum_proc)(View *childs, void *da
 
 //call enum_proc for each first order focused child
 void glv_enum_focused_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
+
+//call enum_proc for each first order focused child
+void glv_enum_hovered_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data);
 
 //call enum_proc for parent and his parent... 
 void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), void *data);
@@ -285,6 +289,7 @@ enum ViewMsg{
     VM_MOUSE_DOWN,
     VM_MOUSE_UP,
     VM_MOUSE_MOVE,
+    VM_MOUSE_WHEEL,
     VM_DRAW,
     VM_SHOW,
     VM_HIDE,
@@ -367,6 +372,13 @@ struct GlvEventTextEditing{
 struct GlvEventChildChanged{
     View *child;
     View *sender;//can be NULL uses to handle recursion
+};
+
+struct GlvEventWheel{
+    Uint32 which;
+    Uint32 direction;
+    float preciseX;
+    float preciseY;
 };
 
 #endif //GLV_H

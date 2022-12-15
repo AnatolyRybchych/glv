@@ -15,15 +15,11 @@ void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
     case VM_DRAW:{
         GlvMgr *mgr = glv_get_mgr(view);
 
-        // glv_draw_circle(mgr, 100, 100, 100, 1, 0, 0, 255);
-        // glv_draw_circle(mgr, 100, 100, 200, 1, 0, 0, 255);
-        // glv_draw_circle(mgr, 100, 200, 100, 1, 0, 0, 255);
-
-        //SDL_Point size = glv_get_size(view);
+        // SDL_Point size = glv_get_size(view);
         
         glv_draw_quadrangle_rel_polycolor(mgr, 
-            (float[2]){-1.1, -1}, 
-            (float[2]){-1, 1}, 
+            (float[2]){0, -1}, 
+            (float[2]){0, 1}, 
             (float[2]){1, 1}, 
             (float[2]){1, -1.1}, 
 
@@ -32,10 +28,28 @@ void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
             (float[3]){0.0, 0.0, 1.0},
             (float[3]){1.0, 1.0, 0.0}
         );
+
+        glv_draw_quadrangle_rel_polycolor(mgr, 
+            (float[2]){-1.1, -1}, 
+            (float[2]){-1, 1}, 
+            (float[2]){0, 1}, 
+            (float[2]){0, -1.1}, 
+
+            (float[3]){1.0, 0.0, 0.0},
+            (float[3]){0.0, 1.0, 0.0},
+            (float[3]){0.0, 0.0, 1.0},
+            (float[3]){1.0, 1.0, 0.0}
+        );
+
+        glv_draw_circle(mgr, 100, 100, 100, 1, 0, 0, 255);
+        glv_draw_circle(mgr, 100, 100, 200, 1, 0, 0, 255);
+        glv_draw_circle(mgr, 100, 200, 100, 1, 0, 0, 255);
+
+        
+
     }break;
     }
 }
-
 
 void init_spa(View *view, void *root_context){
     root_context = root_context;//unused

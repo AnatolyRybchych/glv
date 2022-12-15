@@ -33,6 +33,7 @@ static void __enum_call_key_event(View *view, void *args_ptr);
 static void __enum_call_textinput_event(View *view, void *args_ptr);
 static void __enum_call_textediting_event(View *view, void *args_ptr);
 static void __enum_call_sdl_redirect_event(View *view, void *args_ptr);
+static void __enum_call_mouse_wheel(View *view, void *args_ptr);
 static void __enum_draw_views(View *view, void *unused);
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev);
@@ -81,6 +82,20 @@ void glv_enum_focused_childs(View *view, void(*enum_proc)(View *childs, void *da
 
     while (curr != end){
         if(curr[0]->is_focused){
+            enum_proc(*curr, data);
+        }
+        curr++;
+    }
+}
+
+void glv_enum_hovered_childs(View *view, void(*enum_proc)(View *childs, void *data), void *data){
+    SDL_assert(view != NULL);
+
+    View **curr = view->childs;
+    View **end = curr + view->childs_cnt;
+
+    while (curr != end){
+        if(curr[0]->is_mouse_over){
             enum_proc(*curr, data);
         }
         curr++;
@@ -760,6 +775,15 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             }
             free(glv_ev->data);
         } return;
+        case SDL_MOUSEWHEEL:{
+            GlvWheel wheel = {
+                .direction = ev->wheel.direction,
+                .which = ev->wheel.which,
+                .preciseX = ev->wheel.preciseX,
+                .preciseY = ev->wheel.preciseY,
+            };
+            __enum_call_mouse_wheel(mgr->root_view, &wheel);
+        } break;
         case SDL_MOUSEBUTTONDOWN:
             if(ev->button.windowID != mgr->wind_id) return;
             __handle_mouse_button(mgr->root_view, VM_MOUSE_DOWN, &ev->button);
@@ -1030,6 +1054,7 @@ static void __handle_default_doc(ViewMsg msg, GlvMsgDocs *docs){
         __DOC_CASE(VM_MOUSE_DOWN, "const GlvMouseDown *args", "NULL", "calls when is mouse pressed");
         __DOC_CASE(VM_MOUSE_UP, "const GlvMouseUp *args", "NULL", "calls when is mouse released");
         __DOC_CASE(VM_MOUSE_MOVE, "const GlvMouseMove *args", "NULL", "calls when is mouse moved");
+        __DOC_CASE(VM_MOUSE_WHEEL, "const GlvWheel *args", "NULL", "calls on mouse wheel");
         __DOC_CASE(VM_DRAW, "NULL", "NULL", "calls when glv_draw(view) is called");
         __DOC_CASE(VM_SHOW, "NULL", "NULL", "calls on show");
         __DOC_CASE(VM_HIDE, "NULL", "NULL", "calls on hide");
@@ -1240,6 +1265,11 @@ static void __enum_call_sdl_redirect_event(View *view, void *args_ptr){
     glv_call_event(view, VM_SDL_REDIRECT, args_ptr, NULL);
     glv_call_manage(view, VM_SDL_REDIRECT, args_ptr);
     glv_enum_visible_childs(view, __enum_call_sdl_redirect_event, args_ptr);
+}
+
+static void __enum_call_mouse_wheel(View *view, void *args_ptr){
+    glv_push_event(view, VM_MOUSE_WHEEL, args_ptr, sizeof(GlvWheel));
+    glv_enum_hovered_childs(view, __enum_call_mouse_wheel, args_ptr);
 }
 
 static void __enum_draw_views(View *view, void *unused){
