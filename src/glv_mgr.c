@@ -432,7 +432,7 @@ void glv_draw_polygon_sector_rel(GlvMgr *mgr, float solid_p[2], float border_p1[
     glv_draw_polygon_sector_rel_(mgr, solid_p, border_p1, border_p2, color, vp);
 }
 
-void glv_draw_polygon_sector_rel_polucolor(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3]){
+void glv_draw_polygon_sector_rel_polycolor(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3]){
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
 
