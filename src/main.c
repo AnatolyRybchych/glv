@@ -22,21 +22,16 @@ void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
         //SDL_Point size = glv_get_size(view);
         
         glv_draw_quadrangle_rel_polycolor(mgr, 
-            (float[2]){0.1, -0.1}, 
-            (float[2]){-1, 0}, 
-            (float[2]){0, 1}, 
+            (float[2]){-1.1, -1}, 
+            (float[2]){-1, 1}, 
             (float[2]){1, 1}, 
+            (float[2]){1, -1.1}, 
 
             (float[3]){1.0, 0.0, 0.0},
             (float[3]){0.0, 1.0, 0.0},
             (float[3]){0.0, 0.0, 1.0},
             (float[3]){1.0, 1.0, 0.0}
         );
-
-        FT_Face face = glv_get_freetype_face(mgr, 0);
-        FT_Set_Pixel_Sizes(face, 0, 48);
-
-        glv_draw_text(mgr, face, L"ttext", (int[2]){0, 0}, 0);
     }break;
     }
 }

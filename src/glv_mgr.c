@@ -554,7 +554,7 @@ void glv_draw_quadrangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], fl
     float *v[] = {p1, color_p1, p2, color_p2, p3, color_p3, p4, color_p4};
     qsort(v, 4, sizeof(float*) * 2, __cmp_by_x_axis); //[0,1] are left sides, [2, 3] are right
     qsort(v + 0, 2, sizeof(float*) * 2, __cmp_by_y_axis);//[1] are left top, [0] are left bottom
-    qsort(v + 2, 2, sizeof(float*) * 2, __cmp_by_y_axis);//[3] are right top, [2] are right bottom
+    qsort(v + 4, 2, sizeof(float*) * 2, __cmp_by_y_axis);//[3] are right top, [2] are right bottom
 
     float center[2];
     float center_color[3];
