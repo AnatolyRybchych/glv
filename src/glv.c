@@ -783,9 +783,12 @@ void glv_draw_views_recursive(View *view){
 }
 
 void glv_force_draw_views_recursive(View *view){
+    GLuint fb;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint*)&fb);
+
     __enum_draw_views(view, NULL);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glv_draw_views_recursive(view);
 }
 
