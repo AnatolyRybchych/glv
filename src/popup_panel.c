@@ -19,6 +19,8 @@ static void on_hide_popup(View *popup_panel);
 static void on_set_popup(View *popup_panel, View **popup);
 static void on_set_content(View *popup_panel, View **content);
 static void on_resize(View *popup_panel);
+static void on_child_hide(View *popup_panel, const GlvChildChanged *hidden);
+static void on_child_show(View *popup_panel, const GlvChildChanged *shown);
 
 static void resize_content(View *popup_panel);
 static void resize_popup(View *popup_panel);
@@ -53,6 +55,9 @@ void glv_popup_panel_set_content(View *popup_panel, View *content){
 
 static void proc(View *view, ViewMsg msg, void *in, void *out){
     switch (msg){
+    case VM_SET_BG:
+        glv_swap_texture_with_bg(view);
+        break;
     case VM_RESIZE:
         on_resize(view);
         break;
@@ -61,6 +66,12 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
         break;
     case VM_CHILD_DELETE:
         on_child_delete(view, in);
+        break;
+    case VM_CHILD_HIDE:
+        on_child_hide(view, in);
+        break;
+    case VM_CHILD_SHOW:
+        on_child_show(view, in);
         break;
     case VM_POPUP_PANEL_SHOW_POPUP:
         on_show_popup(view);
@@ -143,6 +154,7 @@ static void on_get_docs(View *popup_panel, const ViewMsg *msg, GlvMsgDocs *docs)
 
 static void on_show_popup(View *popup_panel){
     Data *data = glv_get_view_data(popup_panel, data_offset);
+    if(data->is_popup_shown) return;
 
     if(data->popup == NULL){
         GlvMgr *mgr = glv_get_mgr(popup_panel);
@@ -154,20 +166,23 @@ static void on_show_popup(View *popup_panel){
     if(data->content != NULL){
         glv_hide_by(popup_panel, data->content);
     }
-    glv_show_by(popup_panel, data->popup);
+    
     resize_popup(popup_panel);
+    glv_show_by(popup_panel, data->popup);
 
     data->is_popup_shown = true;
 }
 
 static void on_hide_popup(View *popup_panel){
     Data *data = glv_get_view_data(popup_panel, data_offset);
+    if(data->is_popup_shown == false) return;
 
     if(data->popup != NULL) glv_hide_by(popup_panel, data->popup);
     if(data->content != NULL){
         glv_show_by(popup_panel, data->content);
         resize_content(popup_panel);
     }
+
     data->is_popup_shown = false;
 }
 
@@ -215,6 +230,31 @@ static void on_set_content(View *popup_panel, View **content){
 
 static void on_resize(View *popup_panel){
     resize_current(popup_panel);
+}
+
+static void on_child_hide(View *popup_panel, const GlvChildChanged *hidden){
+    if(hidden->sender == popup_panel) return;
+    Data *data = glv_get_view_data(popup_panel, data_offset);
+
+    if(data->popup == hidden->child){
+        glv_popup_panel_hide_popup(popup_panel);
+    }
+}
+
+static void on_child_show(View *popup_panel, const GlvChildChanged *shown){
+    if(shown->sender == popup_panel) return;
+
+    Data *data = glv_get_view_data(popup_panel, data_offset);
+
+    if(data->popup == shown->child){
+        glv_popup_panel_show_popup(popup_panel);
+    }
+    else if(data->content == shown->child){
+        glv_popup_panel_hide_popup(popup_panel);
+    }
+    else{
+        glv_hide_by(popup_panel, shown->child);
+    }
 }
 
 static void resize_content(View *popup_panel){

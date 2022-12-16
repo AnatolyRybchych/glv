@@ -413,6 +413,8 @@ void glv_set_focus(View *view){
 void glv_show_by(View *sender, View *view){
     SDL_assert(view != NULL);
 
+    if(view->is_visible) return;
+
     __set_view_visibility(view, true);
     glv_push_event(view, VM_SHOW, NULL, 0);
     if(view->parent != NULL){
@@ -427,6 +429,8 @@ void glv_show_by(View *sender, View *view){
 //uses to handle recursion when sended by parent view while handling CHILD_HIDE event
 void glv_hide_by(View *sender, View *view){
     SDL_assert(view != NULL);
+
+    if(view->is_visible == false) return;
 
     __set_view_visibility(view, false);
     glv_push_event(view, VM_HIDE, NULL, 0);
@@ -450,6 +454,8 @@ void glv_set_pos_by(View *sender, View *view, int x, int y){
         SDL_SetWindowPosition(view->mgr->window, x, y);
     }
     else{
+        if(view->x == x && view->y == y) return;
+
         view->x = x;
         view->y = y;
 
@@ -475,6 +481,8 @@ void glv_set_size_by(View *sender, View *view, unsigned int width, unsigned int 
         SDL_SetWindowSize(view->mgr->window, width, height);
     }
     else{
+        if(view->w == width && view->h == height) return;
+
         view->w = width;
         view->h = height;
         SDL_Point new_size = {

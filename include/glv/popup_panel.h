@@ -8,6 +8,17 @@
 #define VM_POPUP_PANEL_SET_POPUP VM_USER_FIRST + 42
 #define VM_POPUP_PANEL_SET_CONTENT VM_USER_FIRST + 43
 
+/*
+                        popup panel
+    popup panel consists of two parts: content and popup
+    when popup is show, content is hidden
+    popup is hidden content is show
+    
+    others child are allways hidden 
+
+    created for custom message boxes without creating a separate window
+*/
+
 extern ViewProc glv_popup_panel_proc;
 
 void glv_popup_panel_show_popup(View *popup_panel);
