@@ -1359,7 +1359,7 @@ static void __enum_call_mouse_wheel(View *view, void *args_ptr){
 
 static void __enum_draw_views(View *view, void *unused){
     
-    if(view->is_redraw_queue){
+    if(view->is_redraw_queue && view->is_visible){
         view->is_redraw_queue = false;
         
         glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
