@@ -910,11 +910,11 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             __handle_key(mgr->root_view, VM_KEY_UP, &ev->key);
         }return;
         case SDL_TEXTINPUT:{
-            if(ev->text.windowID) return;
+            if(ev->text.windowID != mgr->wind_id) return;
             __enum_call_textinput_event(mgr->root_view, (char*)&(ev->text.text[0]));
         }return;
         case SDL_TEXTEDITING:{
-            if(ev->edit.windowID) return;
+            if(ev->edit.windowID != mgr->wind_id) return;
             GlvTextEditing te;
             memcpy(te.composition, ev->edit.text, sizeof(char[32]));
             te.cursor = ev->edit.start;

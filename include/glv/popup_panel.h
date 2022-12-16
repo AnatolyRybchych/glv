@@ -17,6 +17,8 @@
     others child are allways hidden 
 
     created for custom message boxes without creating a separate window
+
+    TODO: blured content as background if background texture is 0
 */
 
 extern ViewProc glv_popup_panel_proc;

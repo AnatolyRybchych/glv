@@ -13,6 +13,7 @@ objects		+= glv_mgr.o
 
 #standard views 
 objects		+= text_view.o
+objects		+= text_input.o
 objects		+= stack_panel.o
 objects		+= canvas.o
 objects		+= margin.o
