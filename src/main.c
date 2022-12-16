@@ -7,22 +7,33 @@
 #include <glv/margin.h>
 #include <glv/menu_panel.h>
 
-void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
-    view = view;
-    msg = msg;
-    args = args;
-    root_context = root_context;
+// void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
+//     view = view;
+//     msg = msg;
+//     args = args;
+//     root_context = root_context;
+//     switch (msg){
+//     case VM_DRAW:{
+//         GlvMgr *mgr = glv_get_mgr(view);
+        
+//         glv_draw_quadrangle_rel_polycolor(mgr, 
+//             (float[2]){0, -1}, 
+//             (float[2]){0, 1}, 
+//             (float[2]){1, 1}, 
+//             (float[2]){1, -1.1}, 
 
-    switch (msg){
-    case VM_MOUSE_MOVE:{
-        const GlvMouseMove *mmove = args;
-        SDL_Point p = {.x = mmove->x, .y = mmove->y};
-        p = glv_view_to_parent(view, p);
+//             (float[3]){1.0, 0.0, 0.0},
+//             (float[3]){0.0, 1.0, 0.0},
+//             (float[3]){0.0, 0.0, 1.0},
+//             (float[3]){1.0, 1.0, 0.0}
+//         );
 
-        printf("parent:{\t%i,\t%i\t}\n", p.x, p.y);
-    }break;
-    }
-}
+//         glv_draw_circle(mgr, 100, 100, 100, 1, 0, 0, 255);
+//         glv_draw_circle(mgr, 100, 100, 200, 1, 0, 0, 255);
+//         glv_draw_circle(mgr, 100, 200, 100, 1, 0, 0, 255);
+//     }break;
+//     }
+// }
 
 void init_spa(View *view, void *root_context){
     root_context = root_context;//unused
@@ -71,5 +82,5 @@ void init_spa(View *view, void *root_context){
 }
 
 int main(void){
-    return glv_run(glv_menu_panel_proc, manage_root, NULL, init_spa);
+    return glv_run(glv_menu_panel_proc, NULL, NULL, init_spa);
 }

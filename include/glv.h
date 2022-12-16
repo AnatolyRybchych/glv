@@ -179,6 +179,11 @@ void glv_set_size(View *view, unsigned int width, unsigned int height);
 //view should manually resize texture if it needed
 void glv_draw(View *view);
 
+//draws all view and childs and childs.. to current framebuffer
+//draws current state of view, dont applies drawing message for this views
+//doesnt draws hidden views
+void glv_draw_views_recursive(View *view);
+
 //for disable view texture drawing
 //childs will still drawing 
 void glv_deny_draw(View *view);

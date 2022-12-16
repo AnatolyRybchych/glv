@@ -11,7 +11,6 @@ static void create_mgr(GlvMgr *mgr);
 static int delete_mgr(GlvMgr *mgr);
 static void handle_events(GlvMgr *mgr, const SDL_Event *ev);
 static void apply_events(GlvMgr *mgr);
-static void draw_views_recursive(View *view);
 static void unfocus_all_excepting(View *view, View *exception);
 static bool handle_private_message(View *view, ViewMsg message, const void *in);
 static unsigned int get_view_data_size(View *view);
@@ -772,6 +771,17 @@ void glv_draw(View *view){
     glv_redraw_window(view->mgr);
 }
 
+void glv_draw_views_recursive(View *view){
+    SDL_Rect parent = {
+        .x = 0,
+        .y = 0,
+        .w = view->w,
+        .h = view->h
+    };
+    
+    __draw_views_recursive(view, parent);
+}
+
 void glv_deny_draw(View *view){
     SDL_assert(view != NULL);
 
@@ -898,20 +908,9 @@ static void apply_events(GlvMgr *mgr){
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        draw_views_recursive(mgr->root_view);
+        glv_draw_views_recursive(mgr->root_view);
         SDL_GL_SwapWindow(mgr->window);
     }
-}
-
-static void draw_views_recursive(View *view){
-    SDL_Rect parent = {
-        .x = 0,
-        .y = 0,
-        .w = view->w,
-        .h = view->h
-    };
-    
-    __draw_views_recursive(view, parent);
 }
 
 static void unfocus_all_excepting(View *view, View *exception){
