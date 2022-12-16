@@ -198,9 +198,10 @@ static void append_text(View *text_view, const wchar_t *text){
 
     data->text = realloc(
         data->text,
-        data->text_len + append_len
+        (data->text_len + append_len + 1) * sizeof(wchar_t)
     );
     memcpy(data->text + data->text_len, text, append_size);
+    data->text_len += append_len;
 
     data->text_width += calc_text_width(text_view, text);
 }
