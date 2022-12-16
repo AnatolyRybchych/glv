@@ -782,6 +782,13 @@ void glv_draw_views_recursive(View *view){
     __draw_views_recursive(view, parent);
 }
 
+void glv_force_draw_views_recursive(View *view){
+    __enum_draw_views(view, NULL);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, view->framebuffer);
+    glv_draw_views_recursive(view);
+}
+
 void glv_deny_draw(View *view){
     SDL_assert(view != NULL);
 

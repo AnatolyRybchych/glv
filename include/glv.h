@@ -180,9 +180,13 @@ void glv_set_size(View *view, unsigned int width, unsigned int height);
 void glv_draw(View *view);
 
 //draws all view and childs and childs.. to current framebuffer
-//draws current state of view, dont applies drawing message for this views
-//doesnt draws hidden views
+//draws current state of view, dont applies drawi message handling in current queue for this views
+//doesnt draws hidden views and ondrawable views
 void glv_draw_views_recursive(View *view);
+
+//like glv_draw_views_recursive
+//but hamndles current draw message handling for this views 
+void glv_force_draw_views_recursive(View *view);
 
 //for disable view texture drawing
 //childs will still drawing 
