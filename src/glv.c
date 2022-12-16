@@ -42,6 +42,8 @@ static void __enum_call_textediting_event(View *view, void *args_ptr);
 static void __enum_call_sdl_redirect_event(View *view, void *args_ptr);
 static void __enum_call_mouse_wheel(View *view, void *args_ptr);
 static void __enum_draw_views(View *view, void *unused);
+static void __enum_point_to_parent(View *view, void *args);
+static void __enum_point_to_child(View *view, void *args);
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev);
 static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev);
@@ -504,6 +506,60 @@ SDL_Point glv_get_size(View *view){
 View *glv_get_Parent(View *view){
     SDL_assert(view != NULL);
     return view->parent;
+}
+
+//if view is root, returns desktop position 
+SDL_Point glv_view_to_parent(View *view, SDL_Point point){
+    SDL_assert(view != NULL);
+
+    if(view->parent != NULL){
+        return (SDL_Point){
+            .x = point.x + view->x,
+            .y = point.y + view->y,
+        };
+    }
+    else{
+        return glv_window_to_desktop(view->mgr, point);
+    }
+}
+
+SDL_Point glv_view_to_window(View *view, SDL_Point point){
+    SDL_assert(view != NULL);
+
+    glv_enum_parents(view, __enum_point_to_parent, &point);    
+    return point;
+}
+
+
+SDL_Point glv_window_to_view(View *view, SDL_Point point){
+    SDL_assert(view != NULL);
+
+    glv_enum_parents(view, __enum_point_to_child, &point);
+    return point; 
+}
+
+SDL_Point glv_window_to_desktop(GlvMgr *mgr, SDL_Point point){
+    SDL_assert(mgr != NULL);
+
+    int x, y;
+    SDL_GetWindowPosition(mgr->window, &x, &y);
+
+    point.x += x;
+    point.y += y;
+
+    return point;
+}
+
+SDL_Point glv_desktop_to_window(GlvMgr *mgr, SDL_Point point){
+    SDL_assert(mgr != NULL);
+
+    int x, y;
+    SDL_GetWindowPosition(mgr->window, &x, &y);
+
+    point.x -= x;
+    point.y -= y;
+
+    return point;
 }
 
 bool glv_is_focused(View *view){
@@ -1281,6 +1337,19 @@ static void __enum_draw_views(View *view, void *unused){
         glv_call_manage(view, VM_DRAW, NULL);
     }
     glv_enum_childs(view, __enum_draw_views, unused);
+}
+
+static void __enum_point_to_parent(View *view, void *args){
+    SDL_Point *p = args;
+
+    p->x += view->x;
+    p->y += view->y;
+}
+
+static void __enum_point_to_child(View *view, void *args){
+    SDL_Point *p = args;
+    p->x -= view->x;
+    p->y -= view->y;
 }
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev){

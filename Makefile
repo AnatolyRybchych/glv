@@ -1,5 +1,4 @@
 
-
 INCLUDE		:= -I/usr/include/freetype2/
 CARGS		:= $(INCLUDE) -ggdb -Iinclude -Wall -Wextra -Werror -pedantic
 

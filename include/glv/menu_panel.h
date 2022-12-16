@@ -12,7 +12,6 @@
 
 #define VM_MENU_PANEL_SET_MENU VM_USER_FIRST + 35
 
-//menu panel consists of two parts and contains not more than 2 childs
 extern ViewProc glv_menu_panel_proc;
 
 void glv_menu_panel_set_left(View *menu_panel);

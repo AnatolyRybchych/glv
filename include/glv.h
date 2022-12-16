@@ -214,6 +214,13 @@ SDL_Point glv_get_size(View *view);
 //return NULL if view is root
 View *glv_get_Parent(View *view);
 
+//if view is root, returns desktop position 
+SDL_Point glv_view_to_parent(View *view, SDL_Point point);
+SDL_Point glv_view_to_window(View *view, SDL_Point point);
+SDL_Point glv_window_to_view(View *view, SDL_Point point);
+SDL_Point glv_window_to_desktop(GlvMgr *mgr, SDL_Point point);
+SDL_Point glv_desktop_to_window(GlvMgr *mgr, SDL_Point point);
+
 //returns is_focused status
 bool glv_is_focused(View *view);
 
