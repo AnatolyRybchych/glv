@@ -6,6 +6,7 @@
 #include <glv/canvas.h>
 #include <glv/margin.h>
 #include <glv/menu_panel.h>
+#include <glv/popup_panel.h>
 
 // void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
 //     view = view;
@@ -42,45 +43,22 @@ void init_spa(View *view, void *root_context){
     GlvMgr *mgr = glv_get_mgr(view);
     glv_new_freetype_face(mgr, "Sarai.ttf", 0);
 
-    View *stack_panel = glv_create(view, glv_stack_panel_proc, NULL, NULL);
+    View *popup_text = glv_create(view, glv_text_view_proc, NULL, NULL);
+    View *content_text = glv_create(view, glv_text_view_proc, NULL, NULL);
 
-    glv_stack_panel_set_horisontal(stack_panel);
-    glv_stack_panel_set_alignment(stack_panel, -1, 0);
+    glv_text_view_set_text(popup_text, L"popup");
+    glv_text_view_set_text(content_text, L"content");
 
-    View *text1 = glv_create(stack_panel, glv_text_view_proc, NULL, NULL);
-    View *text2 = glv_create(stack_panel, glv_text_view_proc, NULL, NULL);
-    View *text3 = glv_create(stack_panel, glv_text_view_proc, NULL, NULL);
+    glv_set_foreground(popup_text, glv_gen_texture_solid_color(255, 0, 0, 255));
+    glv_set_foreground(content_text, glv_gen_texture_solid_color(0, 255, 0, 255));
 
-    glv_text_view_set_text(text1, L"text 1 ");
-    glv_text_view_set_text(text2, L"text 2 ");
-    glv_text_view_set_text(text3, L"text 3 ");
+    glv_popup_panel_set_content(view, content_text);
+    glv_popup_panel_set_popup(view, popup_text);
 
-    glv_text_view_normalize(text1, false);
-    glv_text_view_normalize(text2, false);
-    glv_text_view_normalize(text3, false);
-
-    glv_set_foreground(text1, glv_gen_texture_solid_color(120, 110, 100, 255));
-    glv_set_foreground(text2, glv_gen_texture_solid_color(120, 110, 100, 255));
-    glv_set_foreground(text3, glv_gen_texture_solid_color(120, 110, 100, 255));
-
-    View *text4 = glv_create(view, glv_text_view_proc, NULL, NULL);
-    glv_text_view_set_text(text4, L"text 4 ");
-    glv_text_view_normalize(text4, false);
-    glv_set_foreground(text4, glv_gen_texture_solid_color(140, 120, 100, 255));
-
-    glv_menu_panel_set_menu(view, stack_panel);
-    glv_menu_panel_set_top(view);
-    glv_menu_panel_set_size(view, 50);
-
-    glv_set_background(view, glv_gen_texture_solid_color(20, 15, 10, 255));
-    // glv_set_background(text2, glv_gen_texture_solid_color(120, 110, 100, 255));
-    // glv_set_background(text3, glv_gen_texture_solid_color(100, 110, 90, 255));
-
-    // glv_set_background(text1_margin, glv_gen_texture_solid_color(255, 0, 0, 255));
-
-    // glv_set_background(view, glv_gen_texture_solid_color(20, 20, 20, 255));
+    glv_popup_panel_show_popup(view);
+    glv_popup_panel_hide_popup(view);
 }
 
 int main(void){
-    return glv_run(glv_menu_panel_proc, NULL, NULL, init_spa);
+    return glv_run(glv_popup_panel_proc, NULL, NULL, init_spa);
 }

@@ -159,7 +159,7 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     return result;
 }
 
-bool glv_is_child_f(View *view, View *child){
+bool glv_is_child_of(View *view, View *child){
     bool is_child = false;
     
     void *args[] = {

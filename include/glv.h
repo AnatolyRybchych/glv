@@ -115,7 +115,7 @@ void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), vo
 //user_context can be accessed in manage_proc
 View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 
-bool glv_is_child_f(View *view, View *child);
+bool glv_is_child_of(View *view, View *child);
 
 //deletes view and all childs
 void glv_delete(View *view);
