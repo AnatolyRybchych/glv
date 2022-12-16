@@ -43,6 +43,7 @@ static void __enum_call_mouse_wheel(View *view, void *args_ptr);
 static void __enum_draw_views(View *view, void *unused);
 static void __enum_point_to_parent(View *view, void *args);
 static void __enum_point_to_child(View *view, void *args);
+static void __enum_is_child(View *child, void *args);
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev);
 static void __handle_mouse_move(View *root, const SDL_MouseMotionEvent *ev);
@@ -156,6 +157,18 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     glv_push_event(parent, VM_CHILD_CREATE, &args, sizeof(args));
 
     return result;
+}
+
+bool glv_is_child_f(View *view, View *child){
+    bool is_child = false;
+    
+    void *args[] = {
+        [0] = &is_child,
+        [1] = child
+    };
+
+    glv_enum_childs(view, __enum_is_child, args);
+    return is_child;
 }
 
 void glv_delete(View *view){
@@ -1359,6 +1372,17 @@ static void __enum_point_to_child(View *view, void *args){
     SDL_Point *p = args;
     p->x -= view->x;
     p->y -= view->y;
+}
+
+static void __enum_is_child(View *child, void *args){
+    void **a = args;
+
+    bool *is_child = a[0];
+    View *view = a[1];
+
+    if(view == child){
+        *is_child = true;
+    }
 }
 
 static void __handle_mouse_button(View *root, ViewMsg msg, const SDL_MouseButtonEvent *ev){
