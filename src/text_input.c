@@ -330,9 +330,6 @@ static void delete_rng(View *view, Uint32 from, Uint32 cnt){
     data->text = new_text;
     data->text_len = new_len;
 
-    if(data->carete > data->text_len){
-        instant_carete_pos(view, data->text_len);
-    }
     glv_draw(view);
 }
 
