@@ -32,6 +32,7 @@ static void normalize(View *text_view, bool move);
 static void render(View *text_view);
 static Uint32 calc_text_width(View *text_view, const wchar_t *text);
 static SDL_Point get_text_pos(View *text_view);
+static void on_get_text_pos(View *text_view, SDL_Point *pos);
 
 static void apply_face(View *text_view, const GlvFontFaceId *faceid);
 static void apply_font_width(View *text_view, const Uint32 *width);
@@ -66,6 +67,9 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
     }break;
     case VM_GET_VIEW_DATA_SIZE: 
         init_data_size(view, out);
+        break;
+    case VM_TEXT_VIEW_GET_TEXT_POS:
+        on_get_text_pos(view, out);
         break;
     case VM_DELETE: 
         finalize_data(view);
@@ -151,6 +155,14 @@ void glv_text_view_normalize(View *text_view, bool move){
     SDL_assert(text_view != NULL);
 
     glv_push_event(text_view, VM_TEXT_VIEW_NORMALIZE, &move, sizeof(move));
+}
+
+SDL_Point glv_text_view_get_text_pos(View *text_view){
+    SDL_assert(text_view != NULL);
+
+    SDL_Point result;
+    glv_call_event(text_view, VM_TEXT_VIEW_GET_TEXT_POS, NULL, &result);
+    return result;
 }
 
 static void init_data(View *text_view){
@@ -251,6 +263,10 @@ static void get_docs(View *text_view, const ViewMsg *msg, GlvMsgDocs *docs){
     case VM_TEXT_VIEW_NORMALIZE:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_NORMALIZE),
             "const bool *move", "NULL", "set view size equals text size if *move != false moves this view to save text absolute location");
+        break;
+    case VM_TEXT_VIEW_GET_TEXT_POS:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_GET_TEXT_POS),
+            "NULL", "SDL_Point *pos", "returns text location on text view");
         break;
     default:
         parent_proc(text_view, VM_GET_DOCS, (void*)msg, docs);
@@ -359,6 +375,10 @@ static SDL_Point get_text_pos(View *text_view){
     else if(data->align.y > 0) text_pos.y = size.y - (int)data->face_height;
 
     return text_pos;
+}
+
+static void on_get_text_pos(View *text_view, SDL_Point *pos){
+    *pos = get_text_pos(text_view);
 }
 
 static void apply_face(View *text_view, const GlvFontFaceId *faceid){

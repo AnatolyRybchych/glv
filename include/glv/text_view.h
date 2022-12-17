@@ -9,6 +9,7 @@
 #define VM_TEXT_VIEW_GET_TEXT_PARAMS VM_USER_FIRST + 3
 #define VM_TEXT_VIEW_SET_TEXTALIGN VM_USER_FIRST + 4
 #define VM_TEXT_VIEW_NORMALIZE VM_USER_FIRST + 5
+#define VM_TEXT_VIEW_GET_TEXT_POS VM_USER_FIRST + 6
 
 //if background is 0, background is complitely transparent
 extern ViewProc glv_text_view_proc;
@@ -28,6 +29,8 @@ void glv_text_view_set_alignment(View *text_view, int x, int y);
 //resize view to make it size equals to text size  
 //if move is true, moves this view to save absolute text location 
 void glv_text_view_normalize(View *text_view, bool move);
+
+SDL_Point glv_text_view_get_text_pos(View *text_view);
 
 
 struct GlvTextViewTextParams{
