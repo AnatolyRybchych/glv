@@ -767,11 +767,12 @@ static void __init_glyph_text_coords(float text_coords[12], const float vbo[12])
 }
 
 static void __init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const int pos[2], GLint viewport[4]){
+    
     SDL_FRect g_vp = {
         .x = (pos[0] + glyph->metrics.horiBearingX / 64) 
                 / (float)viewport[2] * 2.0 - 1.0, 
-        
-        .y = (viewport[3] - (pos[1] + (glyph->metrics.vertAdvance / 2 + glyph->metrics.height - glyph->metrics.horiBearingY) / 64)) 
+                                        /*glyph->face->ascender is offset of baseline from previous advance end*/
+        .y = (viewport[3] - (pos[1] + (glyph->metrics.vertAdvance - glyph->face->ascender + glyph->metrics.height - glyph->metrics.horiBearingY) / 64))  
                 / (float)viewport[3] * 2.0 - 1.0,
         
         .w = glyph->bitmap.width * 2
