@@ -7,7 +7,7 @@ static int abs_y(float relative, int viewport);
 
 void coords_rel(float relative[2], const int absolute[2], const int viewport[4]){
     relative[0] = rel_x(absolute[0], viewport[2]);
-    relative[0] = rel_y(absolute[1], viewport[3]);
+    relative[1] = rel_y(absolute[1], viewport[3]);
 }
 
 void coords_abs(int absolute[2], const float relative[2], const int viewport[4]){
@@ -17,7 +17,7 @@ void coords_abs(int absolute[2], const float relative[2], const int viewport[4])
 
 void coords_rel_sz(float relative[2], const int absolute[2], const int viewport_size[2]){
     relative[0] = rel_x(absolute[0], viewport_size[0]);
-    relative[0] = rel_y(absolute[1], viewport_size[1]);
+    relative[1] = rel_y(absolute[1], viewport_size[1]);
 }
 
 void coords_abs_sz(int absolute[2], const float relative[2], const int viewport_size[2]){
