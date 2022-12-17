@@ -73,6 +73,7 @@ GlvMgr *glv_get_mgr(View *view);
 
     void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground);
     Uint32 glv_calc_text_width(FT_Face face, const wchar_t *text);
+    Uint32 glv_calc_text_width_n(FT_Face face, const wchar_t *text, Uint32 text_len);
 
     //prints error using current error logger
     void glv_log_err(GlvMgr *mgr, const char *err);

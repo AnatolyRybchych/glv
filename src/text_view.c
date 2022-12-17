@@ -124,9 +124,9 @@ void glv_text_view_append_text(View *text_view, const wchar_t *text){
 const wchar_t *glv_text_view_get_text(View *text_view){
     SDL_assert(text_view != NULL);
 
-    wchar_t **text = NULL;
-    glv_call_event(text_view, VM_TEXT_VIEW_GET_TEXT, NULL, text);
-    return *text;
+    wchar_t *text = NULL;
+    glv_call_event(text_view, VM_TEXT_VIEW_GET_TEXT, NULL, &text);
+    return text;
 }
 
 GlvTextViewTextParams glv_text_view_get_text_params(View *text_view){

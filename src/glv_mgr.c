@@ -655,6 +655,21 @@ Uint32 glv_calc_text_width(FT_Face face, const wchar_t *text){
     return curr_x;
 }
 
+Uint32 glv_calc_text_width_n(FT_Face face, const wchar_t *text, Uint32 text_len){
+    SDL_assert(face != NULL);
+    SDL_assert(text != NULL);
+
+    int curr_x = 0;
+    for(Uint32 ch_id = 0; ch_id < text_len; ch_id++){
+        FT_Load_Char(face, text[ch_id], FT_LOAD_RENDER);
+
+        FT_GlyphSlot glyph = face->glyph;
+        curr_x += glyph->metrics.horiAdvance / 64;
+    }
+
+    return curr_x;
+}
+
 SDL_Window *glv_get_window(GlvMgr *mgr){
     SDL_assert(mgr != NULL);
     return mgr->window;
