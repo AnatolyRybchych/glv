@@ -52,6 +52,8 @@ static void backspace(View *view);
 static void delete(View *view);
 static void delete_rng(View *view, Uint32 from, Uint32 cnt);
 
+static void instant_carete_pos(View *text_input, Uint32 carete_pos);
+
 ViewProc glv_text_input_proc = proc; 
 static Uint32 data_offset;
 
@@ -182,12 +184,12 @@ static void on_key_down(View  *view, const GlvKeyDown *key){
         break;
     case SDL_SCANCODE_LEFT:
         if(data->carete >= 1){
-            glv_text_input_set_carete_pos(view, data->carete - 1);
+            instant_carete_pos(view, data->carete - 1);
         }
         break;
     case SDL_SCANCODE_RIGHT:
         if(data->carete + 1 <= data->text_len){
-            glv_text_input_set_carete_pos(view, data->carete + 1);
+            instant_carete_pos(view, data->carete + 1);
         }
         break;
     case SDL_SCANCODE_DELETE:
@@ -292,7 +294,7 @@ static void paste_text(View *view, const wchar_t *text){
     data->text = new_text;
     data->text_len = data->text_len + len_paste;
 
-    glv_text_input_set_carete_pos(view, data->carete + len_paste);
+    instant_carete_pos(view, data->carete + len_paste);
 }
 
 static void backspace(View *view){
@@ -301,7 +303,7 @@ static void backspace(View *view){
     if(data->carete == 0) return;
 
     delete_rng(view, data->carete - 1, 1);
-    glv_text_input_set_carete_pos(view, data->carete - 1);
+    instant_carete_pos(view, data->carete - 1);
 }
 
 static void delete(View *view){
@@ -329,7 +331,12 @@ static void delete_rng(View *view, Uint32 from, Uint32 cnt){
     data->text_len = new_len;
 
     if(data->carete > data->text_len){
-        glv_text_input_set_carete_pos(view, data->text_len);
+        instant_carete_pos(view, data->text_len);
     }
     glv_draw(view);
+}
+
+static void instant_carete_pos(View *text_input, Uint32 carete_pos){
+    glv_call_event(text_input, VM_TEXT_INPUT_SET_CARETE_POS, &carete_pos, NULL);
+    glv_call_manage(text_input, VM_TEXT_INPUT_SET_CARETE_POS, &carete_pos);
 }
