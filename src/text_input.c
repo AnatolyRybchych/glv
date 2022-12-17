@@ -50,6 +50,7 @@ static Uint32 calc_text_width(View *view, const wchar_t *text, Uint32 text_len);
 static void paste_text(View *view, const wchar_t *text);
 static void backspace(View *view);
 static void delete(View *view);
+static void ctrl_v(View *view);
 static void delete_rng(View *view, Uint32 from, Uint32 cnt);
 
 static void instant_carete_pos(View *text_input, Uint32 carete_pos);
@@ -195,6 +196,11 @@ static void on_key_down(View  *view, const GlvKeyDown *key){
     case SDL_SCANCODE_DELETE:
         delete(view);
         break;
+    case SDL_SCANCODE_V:{
+        if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
+            ctrl_v(view);
+        }
+    } break;
     default:
         break;
     }
@@ -264,7 +270,7 @@ static void draw_carete(View *view){
         (float[2]){carete_lt[0], carete_rb[1]},
         (float[2]){carete_rb[0], carete_lt[1]},
         
-        (float[3]){1.0, 0.0, 0.0}
+        (float[3]){0.6, 0.4, 0.3}
     );
 }
 
@@ -310,6 +316,24 @@ static void delete(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
     delete_rng(view, data->carete, 1);
+}
+
+static void ctrl_v(View *view){
+    if(SDL_HasClipboardText()){
+        char *text = SDL_GetClipboardText();
+
+        Uint32 text_len = strlen(text);
+        wchar_t *wtext = malloc((text_len + 1) * sizeof(wchar_t));
+
+        //TODO: utf8 to unicode converting
+        for(Uint32 i = 0; i <= text_len; i++){
+            wtext[i] = text[i];
+        }
+
+        SDL_free(text);
+        paste_text(view, wtext);
+        free(wtext);
+    }
 }
 
 static void delete_rng(View *view, Uint32 from, Uint32 cnt){
