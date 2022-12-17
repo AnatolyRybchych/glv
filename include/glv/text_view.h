@@ -38,6 +38,9 @@ struct GlvTextViewTextParams{
 
     Uint32 text_len;
     Uint32 text_width;
+
+    int alignment_x;
+    int alignment_y;
 };
 
 #endif //__GLV_TEXT_VIEW_H_

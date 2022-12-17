@@ -219,7 +219,9 @@ static void get_text_params(View *text_view, GlvTextViewTextParams *params){
         .text_len = data->text_len,
         .face_height = data->face_height,
         .face_width = data->face_width,
-        .text_width = data->text_width
+        .text_width = data->text_width,
+        .alignment_x = data->align.x,
+        .alignment_y = data->align.y,
     };
 }
 
