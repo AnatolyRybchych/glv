@@ -60,6 +60,9 @@ static void delete(View *view);
 static void k_left(View *view);
 static void k_right(View *view);
 static void ctrl_v(View *view);
+static void ctrl_c(View *view);
+static void ctrl_x(View *view);
+static void esc(View *view);
 static void delete_rng(View *view, Uint32 from, Uint32 cnt);
 static void erse_selected(View *view);
 
@@ -231,6 +234,19 @@ static void on_key_down(View  *view, const GlvKeyDown *key){
             ctrl_v(view);
         }
     } break;
+    case SDL_SCANCODE_C:{
+        if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
+            ctrl_c(view);
+        }
+    } break;
+    case SDL_SCANCODE_X:{
+        if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
+            ctrl_x(view);
+        }
+    } break;
+    case SDL_SCANCODE_ESCAPE:
+        esc(view);
+        break;
     default:
         break;
     }
@@ -242,6 +258,7 @@ static void on_set_slection(View  *view, const Uint32 selection[2]){
     if(selection[1] == 0){
         data->selection[0] = data->selection[1] = 0;
         data->selection_pos[0] = data->selection_pos[1] = 0;
+        glv_draw(view);
         return;
     }
 
@@ -513,6 +530,45 @@ static void ctrl_v(View *view){
         SDL_free(text);
         paste_text(view, wtext);
         free(wtext);
+    }
+}
+
+static void ctrl_c(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->selection[1]){
+        //here should be utf-8 instad of ascii
+        char *text = malloc(data->selection[1] + 1);
+        for(Uint32 i = 0; i < data->selection[1]; i++){
+            text[i] = data->text[data->selection[0] + i];
+        }
+        text[data->selection[1]] = 0;
+
+        SDL_SetClipboardText(text);
+        free(text);
+    }
+    else{
+        Uint32 selection[2] = {0, data->text_len};
+        instant_selection(view, selection);
+        ctrl_c(view);
+    }
+}
+
+static void ctrl_x(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->selection[1]){
+        ctrl_c(view);
+        delete(view);
+    }
+}
+
+static void esc(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->selection[1]){
+        Uint32 selection[2] = {0, 0};
+        instant_selection(view, selection);
     }
 }
 
