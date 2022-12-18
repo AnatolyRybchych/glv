@@ -537,7 +537,7 @@ static void ctrl_c(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
     if(data->selection[1]){
-        //here should be utf-8 instad of ascii
+        //TODO: unicode to utf-8 converting
         char *text = malloc(data->selection[1] + 1);
         for(Uint32 i = 0; i < data->selection[1]; i++){
             text[i] = data->text[data->selection[0] + i];

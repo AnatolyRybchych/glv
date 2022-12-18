@@ -1234,7 +1234,7 @@ static void __set_is_mouse_over(View *view, bool is_mouse_over){
 
 static void __unmap_child(View *child){
     SDL_assert(child != NULL);
-    if(child->mgr->root_view == child || child->parent == NULL) return;
+    if(child->parent == NULL) return;
 
     View *parent = child->parent;
 
