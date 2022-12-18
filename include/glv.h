@@ -115,6 +115,7 @@ void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), vo
 //manage_proc used to handle events
 //user_context can be accessed in manage_proc
 View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void *user_context);
+View *glv_create_popup(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 
 bool glv_is_child_of(View *view, View *child);
 
@@ -238,6 +239,10 @@ bool glv_is_focused(View *view);
 
 //returns is_visisble status
 bool glv_is_visible(View *view);
+
+bool glv_is_popup(View *view);
+
+bool glv_is_root(View *view);
 
 //returns is_hovered status
 bool glv_is_mouse_over(View *view);

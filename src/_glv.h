@@ -12,6 +12,8 @@ typedef struct DrawTextureProgram DrawTextureProgram;
 typedef struct DrawCircleProgram DrawCircleProgram;
 typedef struct DrawTriangleProgram DrawTriangleProgram;
 typedef struct DrawTextProgram DrawTextProgram;
+typedef struct PopupViewsQueue PopupViewsQueue;
+typedef struct PopupViewContainer PopupViewContainer;
 
 void log_printf(GlvMgr *mgr, const char *log);
 bool should_redraw(GlvMgr *mgr);
@@ -94,6 +96,16 @@ struct DrawTextProgram{
     GLint loc_glyph_tex;
 };
 
+struct PopupViewsQueue{
+    Uint32 popups_cnt;
+    PopupViewContainer *popups;
+};
+
+struct PopupViewContainer{
+    View *view;
+    bool is_deleted;
+};
+
 struct GlvMgr{
     bool is_running;
     int return_code;
@@ -116,6 +128,8 @@ struct GlvMgr{
 
     bool required_redraw;
     View *root_view;
+
+    PopupViewsQueue popup_queue;
 
     Uint32 min_frametime_ms;
     Uint32 last_frame_drawed_time_ms;
@@ -147,6 +161,8 @@ struct View{
     bool is_focused;
     bool is_mouse_over;
     bool is_text_input;
+
+    bool is_popup;
 
     View *parent;
 

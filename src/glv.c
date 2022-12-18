@@ -19,8 +19,16 @@ static bool __init_sdl(GlvMgr *mgr);
 static bool __init_window(GlvMgr *mgr);
 static bool __init_gl_ctx(GlvMgr *mgr);
 static bool __init_freetype2(GlvMgr *mgr);
+static PopupViewsQueue __create_popup_views_queue(void);
 
-static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
+static bool popup_queue_nempty(const PopupViewsQueue *queue);
+static PopupViewContainer popup_queue_get(const PopupViewsQueue *queue);
+static void popup_queue_remove(PopupViewsQueue *queue);
+static void on_delete_popup(View *view);
+static bool popup_queue_mark_as_deleted(PopupViewsQueue *queue, View *view);
+static void popup_queue_push(PopupViewsQueue *queue, View *view);
+
+static View *__create_view(GlvMgr *mgr, View *parent, bool is_popup, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 static void __init_texture_1x1(View *view);
 static void __init_framebuffer(View *view);
 static bool __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev);
@@ -52,6 +60,7 @@ static void __handle_key(View *root, ViewMsg msg, const SDL_KeyboardEvent *ev);
 static void *__create_singleton_data_ifnexists(GlvMgr *mgr, ViewProc proc);
 static void __delete_singletons(GlvMgr *mgr);
 static Uint32 __get_singleton_data_size(ViewProc proc);
+
 
 static Uint32 user_msg_first;
 
@@ -121,40 +130,18 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     SDL_assert(parent != NULL);
     SDL_assert(view_proc != NULL);
 
+    return __create_view(parent->mgr, parent, false, view_proc, manage_proc, user_context);
+}
 
-    View *result = malloc(sizeof(View));
-    SDL_zerop(result);
+View *glv_create_popup(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
+    View *result = __create_view(mgr, NULL, true, view_proc, manage_proc, user_context);
 
-    result->mgr = parent->mgr;
-    result->parent = parent;
-    result->view_proc = view_proc;
-    result->user_context = user_context;
-    result->is_visible = true;
-    result->singleton_data = __create_singleton_data_ifnexists(parent->mgr, view_proc);
+    glv_set_focus(result);
 
-    if(manage_proc == NULL) result->view_manage = __manage_default;
-    else result->view_manage = manage_proc;
+    SDL_Point size = glv_get_size(mgr->root_view);
+    glv_set_size(result, size.x, size.y);
 
-    __init_texture_1x1(result);
-    __init_framebuffer(result);
-
-    parent->childs_cnt++;
-    parent->childs = realloc(parent->childs, parent->childs_cnt * sizeof(View*));
-    parent->childs[parent->childs_cnt - 1] = result;
-
-    result->view_data_size = get_view_data_size(result);
-    if(result->view_data_size == 0) result->view_data = NULL;
-    else result->view_data = malloc(result->view_data_size);
-    memset(result->view_data, 0, result->view_data_size);
-
-    glv_call_event(result, VM_CREATE, NULL, NULL);
-    glv_call_manage(result, VM_CREATE, NULL);
-
-    GlvChildChanged args = {
-        .child = result,
-        .sender = NULL,
-    };
-    glv_push_event(parent, VM_CHILD_CREATE, &args, sizeof(args));
+    popup_queue_push(&mgr->popup_queue, result);
 
     return result;
 }
@@ -173,9 +160,12 @@ bool glv_is_child_of(View *view, View *child){
 
 void glv_delete(View *view){
     if(view == NULL) return;
-    if(view == view->mgr->root_view){
+    if(glv_is_root(view)){
         view->mgr->root_view = NULL;
         view->mgr->is_running = false;
+    }
+    else if(glv_is_popup(view)){
+        on_delete_popup(view);
     }
     else{
         GlvChildChanged args = {
@@ -234,9 +224,7 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
     mgr.draw_circle_program = init_draw_circle(&mgr);
     mgr.draw_triangle_program = init_draw_triangle(&mgr);
     mgr.draw_text_program = init_draw_text(&mgr);
-
-    __create_root_view(&mgr, root_view_proc, root_view_manage, root_user_data);
-
+    mgr.root_view = __create_view(&mgr, NULL, false, root_view_proc, root_view_manage, root_user_data);
 
     init_spa(mgr.root_view, root_user_data);
 
@@ -249,6 +237,10 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
 
         apply_events(&mgr);
         SDL_Delay(mgr.min_frametime_ms);
+    }
+
+    while (popup_queue_nempty(&mgr.popup_queue)){
+        glv_delete(popup_queue_get(&mgr.popup_queue).view);
     }
 
     if(mgr.root_view != NULL){
@@ -464,12 +456,14 @@ void glv_set_pos_by(View *sender, View *view, int x, int y){
             .y = y,
         };
         glv_push_event(view, VM_MOVE, &new_pos, sizeof(new_pos));
-        GlvChildChanged args = {
+        if(view->parent != NULL){
+            GlvChildChanged args = {
             .child = view,
             .sender = sender,
         };
         glv_push_event(view->parent, VM_CHILD_MOVE, &args, sizeof(args));
         glv_redraw_window(view->mgr);
+        }
     }
 }
 
@@ -477,7 +471,7 @@ void glv_set_pos_by(View *sender, View *view, int x, int y){
 void glv_set_size_by(View *sender, View *view, unsigned int width, unsigned int height){
     SDL_assert(view != NULL);
 
-    if(view == view->mgr->root_view){
+    if(glv_is_root(view)){
         SDL_SetWindowSize(view->mgr->window, width, height);
     }
     else{
@@ -489,13 +483,15 @@ void glv_set_size_by(View *sender, View *view, unsigned int width, unsigned int 
             .x = width,
             .y = height,
         };
-        glv_push_event(view, VM_RESIZE, &new_size, sizeof(new_size));
-        GlvChildChanged args = {
-            .child = view,
-            .sender = sender,
-        };
-        glv_push_event(view->parent, VM_CHILD_RESIZE, &args, sizeof(args));
-        glv_redraw_window(view->mgr);
+        if(view->parent != NULL){
+            glv_push_event(view, VM_RESIZE, &new_size, sizeof(new_size));
+            GlvChildChanged args = {
+                .child = view,
+                .sender = sender,
+            };
+            glv_push_event(view->parent, VM_CHILD_RESIZE, &args, sizeof(args));
+            glv_redraw_window(view->mgr);
+        }
     }
 }
 
@@ -591,6 +587,18 @@ bool glv_is_visible(View *view){
     SDL_assert(view != NULL);
     
     return view->is_visible;
+}
+
+bool glv_is_popup(View *view){
+    SDL_assert(view != NULL);
+
+    return view->is_popup;
+}
+
+bool glv_is_root(View *view){
+    SDL_assert(view != NULL);
+
+    return view->mgr->root_view == view;
 }
 
 bool glv_is_mouse_over(View *view){
@@ -834,6 +842,7 @@ static void create_mgr(GlvMgr *mgr){
     mgr->min_frametime_ms = 10;
     mgr->last_frame_drawed_time_ms = SDL_GetTicks();
     mgr->on_sdl_event = default_on_sdl_event;
+    mgr->popup_queue = __create_popup_views_queue();
 }
 
 static int delete_mgr(GlvMgr *mgr){
@@ -862,6 +871,12 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
     else{
         return;
     }
+
+    View *receiver = mgr->root_view;
+    if(popup_queue_nempty(&mgr->popup_queue)){
+        PopupViewContainer container = popup_queue_get(&mgr->popup_queue);
+        receiver = container.view;
+    }
     
     switch (ev->type){
         case SDL_WINDOWEVENT:
@@ -887,31 +902,31 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
                 .preciseX = ev->wheel.preciseX,
                 .preciseY = ev->wheel.preciseY,
             };
-            __enum_call_mouse_wheel(mgr->root_view, &wheel);
+            __enum_call_mouse_wheel(receiver, &wheel);
         } return;
         case SDL_MOUSEBUTTONDOWN:
             if(ev->button.windowID != mgr->wind_id) return;
-            __handle_mouse_button(mgr->root_view, VM_MOUSE_DOWN, &ev->button);
+            __handle_mouse_button(receiver, VM_MOUSE_DOWN, &ev->button);
         return;
         case SDL_MOUSEBUTTONUP:
             if(ev->button.windowID != mgr->wind_id) return;
-            __handle_mouse_button(mgr->root_view, VM_MOUSE_UP, &ev->button);
+            __handle_mouse_button(receiver, VM_MOUSE_UP, &ev->button);
         return;
         case SDL_MOUSEMOTION:{
             if(ev->motion.windowID != mgr->wind_id) return;
-            __handle_mouse_move(mgr->root_view, &ev->motion);
+            __handle_mouse_move(receiver, &ev->motion);
         }return;
         case SDL_KEYDOWN:{
             if(ev->key.windowID != mgr->wind_id) return;
-            __handle_key(mgr->root_view, VM_KEY_DOWN, &ev->key);
+            __handle_key(receiver, VM_KEY_DOWN, &ev->key);
         }return;
         case SDL_KEYUP:{
             if(ev->key.windowID != mgr->wind_id) return;
-            __handle_key(mgr->root_view, VM_KEY_UP, &ev->key);
+            __handle_key(receiver, VM_KEY_UP, &ev->key);
         }return;
         case SDL_TEXTINPUT:{
             if(ev->text.windowID != mgr->wind_id) return;
-            __enum_call_textinput_event(mgr->root_view, (char*)&(ev->text.text[0]));
+            __enum_call_textinput_event(receiver, (char*)&(ev->text.text[0]));
         }return;
         case SDL_TEXTEDITING:{
             if(ev->edit.windowID != mgr->wind_id) return;
@@ -919,12 +934,10 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
             memcpy(te.composition, ev->edit.text, sizeof(char[32]));
             te.cursor = ev->edit.start;
             te.selection_len = ev->edit.length;
-            __enum_call_textediting_event(mgr->root_view, &te);
+            __enum_call_textediting_event(receiver, &te);
         }return;
     }
-    if(mgr->root_view != NULL){
-        __enum_call_sdl_redirect_event(mgr->root_view, (void*)ev);
-    }
+    __enum_call_sdl_redirect_event(receiver, (void*)ev);
 }
 
 static void apply_events(GlvMgr *mgr){
@@ -936,10 +949,19 @@ static void apply_events(GlvMgr *mgr){
     
         __enum_draw_views(mgr->root_view, NULL);
 
+        if(popup_queue_nempty(&mgr->popup_queue)){
+            __enum_draw_views(popup_queue_get(&mgr->popup_queue).view, NULL);
+        }
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
         glv_draw_views_recursive(mgr->root_view);
+        if(popup_queue_nempty(&mgr->popup_queue)){
+            glv_draw_views_recursive(popup_queue_get(&mgr->popup_queue).view);
+        }
+
         SDL_GL_SwapWindow(mgr->window);
     }
 }
@@ -1023,30 +1045,140 @@ static bool __init_freetype2(GlvMgr *mgr){
     return true;
 }
 
-static void __create_root_view(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
+static PopupViewsQueue __create_popup_views_queue(void){
+    PopupViewsQueue result;
+    SDL_zero(result);
+
+    return result;
+}
+
+static bool popup_queue_nempty(const PopupViewsQueue *queue){
+    return queue->popups_cnt != 0;
+}
+
+static PopupViewContainer popup_queue_get(const PopupViewsQueue *queue){
+    SDL_assert(queue->popups_cnt != 0);
+
+    return queue->popups[0];
+}
+
+static void popup_queue_remove(PopupViewsQueue *queue){
+    SDL_assert(queue->popups_cnt != 0);
+
+    for (Uint32 i = 1; i < queue->popups_cnt; i++){
+        queue->popups[i - 1] = queue->popups[i];
+    }
+    queue->popups_cnt--;
+    queue->popups = realloc(queue->popups, queue->popups_cnt * sizeof(PopupViewContainer));
+
+    if(popup_queue_nempty(queue)){
+        PopupViewContainer next = popup_queue_get(queue);
+        if(next.is_deleted) popup_queue_remove(queue);
+    }
+}
+
+static void on_delete_popup(View *view){
+    PopupViewsQueue *queue = &view->mgr->popup_queue;
+    if(popup_queue_nempty(queue)){
+        PopupViewContainer container = popup_queue_get(queue);
+        if(container.view == view){
+            popup_queue_remove(queue);
+        }
+        else{
+            if(popup_queue_mark_as_deleted(queue, view) == false){
+                glv_log_err(view->mgr, "delete popup: popup view is not found");
+            }
+        }
+    }
+    else{
+        glv_log_err(view->mgr, "delete popup: deleteing popup view error, there is no popups in queue");
+    }
+}
+
+static bool popup_queue_mark_as_deleted(PopupViewsQueue *queue, View *view){
+    SDL_assert(queue->popups_cnt != 0);
+
+    PopupViewContainer *curr = queue->popups;
+    PopupViewContainer *end = curr + queue->popups_cnt;
+
+    while (curr != end){
+        if(curr[0].view == view){
+            if(curr[0].is_deleted) return false;
+            
+            curr[0].is_deleted = true;
+            return true;
+        }
+        curr++;
+    }
+    return false;
+}
+
+static void popup_queue_push(PopupViewsQueue *queue, View *view){
+    SDL_assert(queue != NULL);
+    SDL_assert(view != NULL);
+
+    queue->popups = realloc(queue->popups,
+        ++queue->popups_cnt * sizeof(PopupViewContainer));
+    queue->popups[queue->popups_cnt - 1] = (PopupViewContainer){
+        .is_deleted = false,
+        .view = view,
+    };
+}
+
+static View *__create_view(GlvMgr *mgr, View *parent, bool is_popup, ViewProc view_proc, ViewManage manage_proc, void *user_context){
     View *result = malloc(sizeof(View));
     SDL_zerop(result);
-    mgr->root_view = result;
 
+    if(parent == NULL){
+        if(is_popup){
+            result->is_popup = true;
+        }
+        else{
+            result->is_popup = false;
+        }
+    }
+    else{
+        result->is_popup = false;
+    }
+
+    if(manage_proc == NULL) result->view_manage = __manage_default;
+    else result->view_manage = manage_proc;
+
+    result->is_popup = is_popup;
     result->mgr = mgr;
     result->view_proc = view_proc;
     result->user_context = user_context;
     result->is_visible = true;
     result->singleton_data = __create_singleton_data_ifnexists(mgr, view_proc);
 
-    if(manage_proc == NULL) result->view_manage = __manage_default;
-    else result->view_manage = manage_proc;
-    
-    __init_texture_1x1(result);
-    __init_framebuffer(result);
+    if(parent){
+        parent->childs_cnt++;
+        parent->childs = realloc(parent->childs, parent->childs_cnt * sizeof(View*));
+        parent->childs[parent->childs_cnt - 1] = result;
+    }
 
     result->view_data_size = get_view_data_size(result);
     if(result->view_data_size == 0) result->view_data = NULL;
     else result->view_data = malloc(result->view_data_size);
     memset(result->view_data, 0, result->view_data_size);
 
+    __init_texture_1x1(result);
+    __init_framebuffer(result);
+
     glv_call_event(result, VM_CREATE, NULL, NULL);
     glv_call_manage(result, VM_CREATE, NULL);
+
+    if(parent && !is_popup){
+        GlvChildChanged args = {
+            .child = result,
+            .sender = NULL,
+        };
+        glv_push_event(parent, VM_CHILD_CREATE, &args, sizeof(args));
+    }
+
+    glv_draw(result);
+
+    return result;
 }
 
 static void __init_texture_1x1(View *view){
@@ -1084,42 +1216,51 @@ static bool __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
     }
     else if(ev->windowID != mgr->wind_id) return false;
 
+    View *receiver = mgr->root_view;
+    if(popup_queue_nempty(&mgr->popup_queue)){
+        PopupViewContainer container = popup_queue_get(&mgr->popup_queue);
+        receiver = container.view;
+    }
+
     switch (ev->event){
     case SDL_WINDOWEVENT_EXPOSED:
         mgr->required_redraw = true;
         return true;
     case SDL_WINDOWEVENT_SIZE_CHANGED:{
         SDL_Point new_size = {
-            .x = mgr->root_view->w = ev->data1,
-            .y = mgr->root_view->h = ev->data2,
+            .x = receiver->w = mgr->root_view->w = ev->data1,
+            .y = receiver->h = mgr->root_view->h = ev->data2,
         };
 
-        glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
+        glv_push_event(receiver, VM_RESIZE, &new_size, sizeof(new_size));
+        if(receiver != mgr->root_view){
+            glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
+        }
     }return true;
     case SDL_WINDOWEVENT_SHOWN:{
         SDL_Point new_pos;
         SDL_Point new_size;
 
-        mgr->root_view->is_visible = true;
-        glv_push_event(mgr->root_view, VM_SHOW, NULL, 0);
+        receiver->is_visible = true;
+        glv_push_event(receiver, VM_SHOW, NULL, 0);
 
         SDL_GetWindowSize(mgr->window, &new_size.x, &new_size.y);
         SDL_GetWindowPosition(mgr->window, &new_pos.x, &new_pos.y);
 
-        glv_push_event(mgr->root_view, VM_MOVE, &new_size, sizeof(new_pos));
-        glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
+        glv_push_event(receiver, VM_MOVE, &new_size, sizeof(new_pos));
+        glv_push_event(receiver, VM_RESIZE, &new_size, sizeof(new_size));
     }return true;
     case SDL_WINDOWEVENT_HIDDEN:{
-        mgr->root_view->is_visible = false;
-        glv_push_event(mgr->root_view, VM_HIDE, NULL, 0);
+        receiver->is_visible = false;
+        glv_push_event(receiver, VM_HIDE, NULL, 0);
     }return true;
     case SDL_WINDOWEVENT_FOCUS_GAINED:{
-        mgr->root_view->is_focused = true;
-        glv_push_event(mgr->root_view, VM_FOCUS, NULL, 0);
+        receiver->is_focused = true;
+        glv_push_event(receiver, VM_FOCUS, NULL, 0);
     }return true;
     case SDL_WINDOWEVENT_FOCUS_LOST:{
-        mgr->root_view->is_focused = false;
-        glv_push_event(mgr->root_view, VM_UNFOCUS, NULL, 0);
+        receiver->is_focused = false;
+        glv_push_event(receiver, VM_UNFOCUS, NULL, 0);
     }return true;
     }
     return false;
