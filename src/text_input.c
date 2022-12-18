@@ -23,9 +23,9 @@ typedef struct Data{
     //carete size in pixels
     int carete_size[2];
 
+    Uint32 selection[2];
     //selection pos in pixels reletive to text pos
     int selection_pos[2];
-
     //selection size in pixels
     int selection_size[2];
 
@@ -46,19 +46,25 @@ static void on_draw(View *view);
 static void on_docs(View  *view, ViewMsg *msg, GlvMsgDocs *docs); 
 static void on_set_carete_pos(View  *view, const Uint32 *carete_pos); 
 static void on_key_down(View  *view, const GlvKeyDown *key); 
+static void on_set_slection(View  *view, const Uint32 selection[2]); 
 
 static void resize_texture(View *view);
 static void draw_text(View *view);
 static void draw_bg(View *view);
 static void draw_carete(View *view);
+static void draw_selection(View *view);
 static Uint32 calc_text_width(View *view, const wchar_t *text, Uint32 text_len);
 static void paste_text(View *view, const wchar_t *text);
 static void backspace(View *view);
 static void delete(View *view);
+static void k_left(View *view);
+static void k_right(View *view);
 static void ctrl_v(View *view);
 static void delete_rng(View *view, Uint32 from, Uint32 cnt);
+static void erse_selected(View *view);
 
 static void instant_carete_pos(View *text_input, Uint32 carete_pos);
+static void instant_selection(View *text_input, const Uint32 selection[2]);
 
 ViewProc glv_text_input_proc = proc; 
 static Uint32 data_offset;
@@ -67,6 +73,14 @@ void glv_text_input_set_carete_pos(View *text_input, Uint32 carete_pos){
     SDL_assert(text_input != NULL);
 
     glv_push_event(text_input, VM_TEXT_INPUT_SET_CARETE_POS, &carete_pos, sizeof(carete_pos));
+}
+
+void glv_text_input_set_selection(View *text_input, Uint32 first, Uint32 count){
+    SDL_assert(text_input != NULL);
+
+    Uint32 args[] = {first, count};
+
+    glv_push_event(text_input, VM_TEXT_INPUT_SET_CARETE_POS, args, sizeof(args));
 }
 
 static void proc(View *view, ViewMsg msg, void *in, void *out){
@@ -95,6 +109,9 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
     case VM_TEXT_INPUT_SET_CARETE_POS:
         on_set_carete_pos(view, in);
         break;
+    case VM_TEXT_INPUT_SET_SELECTION:
+        on_set_slection(view, in);
+        break;
     case VM_GET_DOCS:
         on_docs(view, in, out);
         break;
@@ -119,6 +136,9 @@ static void on_create(View *view){
     data->carete_size[0] = 2;
     data->carete_size[1] = 48;
 
+    data->selection_size[1] = 48;
+    data->selection_pos[1] = 0;
+
     data->face_size[1] = 48;
 }
 
@@ -129,6 +149,12 @@ static void on_delete(View *view){
 }
 
 static void on_text(View *view, const char *text){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->selection[0] != data->selection[1]){
+        erse_selected(view);
+    }
+
     wchar_t ch[] = {
         *text,
         0
@@ -149,6 +175,7 @@ static void on_resize(View *view, const SDL_Point *new_size){
 static void on_draw(View *view){
     resize_texture(view);
     draw_bg(view);
+    draw_selection(view);
     draw_text(view);
     draw_carete(view);
 }
@@ -158,6 +185,10 @@ static void on_docs(View  *view, ViewMsg *msg, GlvMsgDocs *docs){
     case VM_TEXT_INPUT_SET_CARETE_POS:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_SET_CARETE_POS),
             "const Uint32 *carete_pos", "NULL", "set text carete position");
+        break;
+    case VM_TEXT_INPUT_SET_SELECTION:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_SET_CARETE_POS),
+            "const Uint32 selection[2]", "NULL", "set text selection from selection[0], selection[1] elements");
         break;
     default:
         parent_proc(view, VM_GET_DOCS, msg, docs);
@@ -182,21 +213,15 @@ static void on_set_carete_pos(View  *view, const Uint32 *carete_pos){
 }
 
 static void on_key_down(View  *view, const GlvKeyDown *key){
-    Data *data = glv_get_view_data(view, data_offset);
-
     switch (key->sym.scancode){
     case SDL_SCANCODE_BACKSPACE:
         backspace(view);
         break;
     case SDL_SCANCODE_LEFT:
-        if(data->carete >= 1){
-            instant_carete_pos(view, data->carete - 1);
-        }
+        k_left(view);
         break;
     case SDL_SCANCODE_RIGHT:
-        if(data->carete + 1 <= data->text_len){
-            instant_carete_pos(view, data->carete + 1);
-        }
+        k_right(view);
         break;
     case SDL_SCANCODE_DELETE:
         delete(view);
@@ -209,6 +234,27 @@ static void on_key_down(View  *view, const GlvKeyDown *key){
     default:
         break;
     }
+}
+
+static void on_set_slection(View  *view, const Uint32 selection[2]){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(selection[1] == 0){
+        data->selection[0] = data->selection[1] = 0;
+        data->selection_pos[0] = data->selection_pos[1] = 0;
+        return;
+    }
+
+    Uint32 s[2] = {selection[0], selection[1]};
+    if(s[1] > data->text_len - s[0]) s[1] = data->text_len - s[0];
+
+    data->selection_pos[0] = calc_text_width(view, data->text, s[0]);
+    data->selection_size[0] = calc_text_width(view, data->text + s[0], s[1]);
+
+    data->selection[0] = s[0];
+    data->selection[1] = s[1];
+
+    glv_draw(view);
 }
 
 static void resize_texture(View *view){
@@ -279,6 +325,42 @@ static void draw_carete(View *view){
     );
 }
 
+static void draw_selection(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->selection[0] == data->selection[1]) return;
+    GlvMgr *mgr = glv_get_mgr(view);
+
+    SDL_Point size = glv_get_size(view);
+    int *_size = (int*)&size;
+
+    int selection_lt_px[2] = {
+        [0] = data->selection_pos[0] + data->text_pos[0],
+        [1] = data->selection_pos[1] + data->text_pos[1],
+    };
+
+    int selection_rb_px[2] = {
+        [0] = selection_lt_px[0] + data->selection_size[0],
+        [1] = selection_lt_px[1] + data->selection_size[1],
+    };
+
+    float selection_lt[2];
+    float selection_rb[2];
+
+    coords_rel_sz(selection_lt, selection_lt_px, _size);
+    coords_rel_sz(selection_rb, selection_rb_px, _size);
+
+    glv_draw_quadrangle_rel(mgr, 
+        selection_lt,
+        selection_rb,
+        (float[2]){selection_lt[0], selection_rb[1]},
+        (float[2]){selection_rb[0], selection_lt[1]},
+        
+        (float[3]){0.0, 0.0, 0.0}
+    );
+
+}
+
 static Uint32 calc_text_width(View *view, const wchar_t *text, Uint32 text_len){
     Data *data = glv_get_view_data(view, data_offset);
     GlvMgr *mgr = glv_get_mgr(view);
@@ -313,18 +395,111 @@ static void backspace(View *view){
 
     if(data->carete == 0) return;
 
-    delete_rng(view, data->carete - 1, 1);
-    instant_carete_pos(view, data->carete - 1);
+    if(data->selection[1]){
+        erse_selected(view);
+    }
+    else{
+        delete_rng(view, data->carete - 1, 1);
+        instant_carete_pos(view, data->carete - 1);
+    }
 }
 
 static void delete(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
-    delete_rng(view, data->carete, 1);
+    if(data->selection[1]){
+        erse_selected(view);
+    }
+    else{
+        delete_rng(view, data->carete, 1);
+    }
+}
+
+static void k_left(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->carete == 0){
+        return;
+    }
+
+    if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LSHIFT]){
+        Uint32 selection[2] = {data->selection[0], data->selection[1]};
+
+        if(selection[1] == 0) selection[0] = data->carete;
+        
+
+        if(selection[0] == data->carete){
+            selection[0]--;
+            selection[1]++;
+        }
+        else if(selection[0] + selection[1] == data->carete){
+            selection[1]--;
+        }
+        else{
+            selection[1] = 0;
+        }
+        instant_selection(view, selection);
+        instant_carete_pos(view, data->carete - 1);
+    }
+    else{
+        if(data->selection[1]){
+            instant_carete_pos(view, data->selection[0]);
+        }
+        else{
+            instant_carete_pos(view, data->carete - 1);
+        }
+
+        Uint32 selection[2] = {0, 0};
+        instant_selection(view, selection);
+    }
+}
+
+static void k_right(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->carete + 1 > data->text_len){
+        return;
+    }
+
+    if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LSHIFT]){
+        Uint32 selection[2] = {data->selection[0], data->selection[1]};
+
+        if(selection[1] == 0) selection[0] = data->carete;
+        
+
+        if(selection[0] + selection[1] == data->carete){
+            selection[1]++;
+        }
+        else if(selection[0] == data->carete){
+            selection[0]++;
+            selection[1]--;
+        }
+        else{
+            selection[1] = 0;
+        }
+        instant_selection(view, selection);
+        instant_carete_pos(view, data->carete + 1);
+    }
+    else{
+        if(data->selection[1]){
+            instant_carete_pos(view, data->selection[0] + data->selection[1]);
+        }
+        else{
+            instant_carete_pos(view, data->carete + 1);
+        }
+        Uint32 selection[2] = {0, 0};
+        instant_selection(view, selection);
+    }
 }
 
 static void ctrl_v(View *view){
     if(SDL_HasClipboardText()){
+        Data *data = glv_get_view_data(view, data_offset);
+
+        if(data->selection[1]){
+            erse_selected(view);
+        }
+
         char *text = SDL_GetClipboardText();
 
         Uint32 text_len = strlen(text);
@@ -362,7 +537,33 @@ static void delete_rng(View *view, Uint32 from, Uint32 cnt){
     glv_draw(view);
 }
 
+static void erse_selected(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+    GlvMgr *mgr = glv_get_mgr(view);
+
+    if(data->selection[1] == 0){
+        return;
+    }
+    else if(data->selection[0] >= data->text_len){
+        glv_log_err(mgr, "text input: erse text out of range");
+
+        Uint32 selection[2] = {0, 0};
+        instant_selection(view, selection);
+        return;
+    }
+
+    delete_rng(view, data->selection[0], data->selection[1]);
+    instant_carete_pos(view, data->selection[0]);
+    Uint32 selection[2] = {0, 0};
+    instant_selection(view, selection);
+}
+
 static void instant_carete_pos(View *text_input, Uint32 carete_pos){
     glv_call_event(text_input, VM_TEXT_INPUT_SET_CARETE_POS, &carete_pos, NULL);
     glv_call_manage(text_input, VM_TEXT_INPUT_SET_CARETE_POS, &carete_pos);
+}
+
+static void instant_selection(View *text_input, const Uint32 selection[2]){
+    glv_call_event(text_input, VM_TEXT_INPUT_SET_SELECTION, (void*)selection, NULL);
+    glv_call_manage(text_input, VM_TEXT_INPUT_SET_SELECTION, (void*)selection);
 }
