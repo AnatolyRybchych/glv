@@ -239,6 +239,7 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
         SDL_Delay(mgr.min_frametime_ms);
     }
 
+
     while (popup_queue_nempty(&mgr.popup_queue)){
         glv_delete(popup_queue_get(&mgr.popup_queue).view);
     }
@@ -1135,10 +1136,12 @@ static View *__create_view(GlvMgr *mgr, View *parent, bool is_popup, ViewProc vi
         }
         else{
             result->is_popup = false;
+            result->parent = parent;
         }
     }
     else{
         result->is_popup = false;
+        result->parent = parent;
     }
 
     if(manage_proc == NULL) result->view_manage = __manage_default;
@@ -1400,9 +1403,6 @@ static void __unmap_child(View *child){
 
 static void __enum_delete_childs(View *child, void *unused){
     unused = unused;//unused
-    
-    glv_enum_childs(child, __enum_delete_childs, unused);
-    
     glv_delete(child);
 }
 

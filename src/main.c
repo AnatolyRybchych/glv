@@ -34,10 +34,14 @@ void init_spa(View *view, void *root_context){
     GlvMgr *mgr = glv_get_mgr(view);
     glv_new_freetype_face(mgr, "Sarai.ttf", 0);
 
-    glv_set_background(view, glv_gen_texture_solid_color(60, 50, 35, 255));
-    glv_set_foreground(view, glv_gen_texture_solid_color(160, 100, 80, 255));
+    glv_stack_panel_set_alignment(view, 0, 0);
+    glv_set_background(view, glv_gen_texture_solid_color(20, 16, 7, 255));
+
+    View *text_input = glv_create(view, glv_text_input_proc, NULL, NULL);
+    glv_set_background(text_input, glv_gen_texture_solid_color(0, 16, 7, 255));
+    glv_set_size(text_input, 200, 48);
 }
 
 int main(void){
-    return glv_run(glv_text_input_proc, NULL, NULL, init_spa);
+    return glv_run(glv_stack_panel_proc, NULL, NULL, init_spa);
 }
