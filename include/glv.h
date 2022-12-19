@@ -117,6 +117,8 @@ void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), vo
 View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 
 //weak view doesnt receives events from input
+//week view is allways on top but can be owerlapped by another weak view
+//in general for displaying effects, statuses and other independent of user stuff
 View *glv_create_weak(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 
 //popup views displays in queue, current popup displays on top

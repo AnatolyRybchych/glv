@@ -988,11 +988,11 @@ static void apply_events(GlvMgr *mgr){
         //redraw regular views
         __enum_draw_views(mgr->root_view, NULL);
 
-        //redraw 
-        if(popup_queue_nempty(&mgr->popup_queue)) __enum_draw_views(popup_queue_get(&mgr->popup_queue).view, NULL);
-        
         //redraw week views
         enum_weak_views(mgr, __enum_draw_views, NULL);
+
+        //redraw 
+        if(popup_queue_nempty(&mgr->popup_queue)) __enum_draw_views(popup_queue_get(&mgr->popup_queue).view, NULL);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
@@ -1001,11 +1001,11 @@ static void apply_events(GlvMgr *mgr){
         //display regular view on window
         glv_draw_views_recursive(mgr->root_view);
 
-        //display popup view on window
-        if(popup_queue_nempty(&mgr->popup_queue)) glv_draw_views_recursive(popup_queue_get(&mgr->popup_queue).view);
-        
         //display weak views on window
         enum_weak_views(mgr, __enum_glv_draw_views_recursive, NULL);
+
+        //display popup view on window
+        if(popup_queue_nempty(&mgr->popup_queue)) glv_draw_views_recursive(popup_queue_get(&mgr->popup_queue).view);
 
         SDL_GL_SwapWindow(mgr->window);
     }
