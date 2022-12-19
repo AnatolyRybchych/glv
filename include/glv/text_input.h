@@ -11,6 +11,8 @@
 #define VM_TEXT_INPUT_GET_CARETE VM_USER_FIRST + 55
 #define VM_TEXT_INPUT_SET_CARETE_COLOR VM_USER_FIRST + 56
 #define VM_TEXT_INPUT_SET_SELECTION_COLOR VM_USER_FIRST + 57
+#define VM_TEXT_INPUT_CLEAR VM_USER_FIRST + 58
+#define VM_TEXT_INPUT_SET_TEXT VM_USER_FIRST + 59
 
 extern ViewProc glv_text_input_proc; 
 
@@ -21,6 +23,8 @@ void glv_text_input_get_selection(View *text_input, Uint32 selection[2]);
 Uint32 glv_text_input_get_carete(View *text_input);
 void glv_text_input_set_carete_color(View *text_input, float r, float g, float b);
 void glv_text_input_set_selection_color(View *text_input, float r, float g, float b);
+void glv_text_input_clear(View *text_input);
+void glv_text_input_set_text(View *text_input, const wchar_t *text);
 
 
 #endif //__GLV_TEXT_INPUT_H

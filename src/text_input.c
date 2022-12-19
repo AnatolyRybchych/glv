@@ -55,6 +55,8 @@ static void on_set_selection_color(View *view, const float color[3]);
 static void on_set_face(View *view, const GlvFontFaceId *face); 
 static void on_set_face_height(View *view, const Uint32 *face_height); 
 static void on_set_face_width(View *view, const Uint32 *face_width); 
+static void on_set_text(View *view, const wchar_t *text); 
+static void on_clear(View *view); 
 
 static void resize_texture(View *view);
 static void draw_text(View *view);
@@ -127,6 +129,16 @@ void glv_text_input_set_selection_color(View *text_input, float r, float g, floa
     glv_push_event(text_input, VM_TEXT_INPUT_SET_SELECTION_COLOR, rgb, sizeof(rgb));
 }
 
+void glv_text_input_clear(View *text_input){
+    SDL_assert(text_input != NULL);
+    glv_push_event(text_input, VM_TEXT_INPUT_CLEAR, NULL, 0);
+}
+
+void glv_text_input_set_text(View *text_input, const wchar_t *text){
+    SDL_assert(text_input != NULL);
+    glv_push_event(text_input, VM_TEXT_INPUT_SET_TEXT, (void*)text, (wcslen(text) + 1) * sizeof(wchar_t));
+}
+
 static void proc(View *view, ViewMsg msg, void *in, void *out){
     switch (msg){
     case VM_TEXT:
@@ -170,6 +182,12 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
         break;
     case VM_TEXT_INPUT_SET_SELECTION_COLOR:
         on_set_selection_color(view, in);
+        break;
+    case VM_TEXT_INPUT_SET_TEXT:
+        on_set_text(view, in);
+        break;
+    case VM_TEXT_INPUT_CLEAR:
+        on_clear(view);
         break;
     case VM_SET_FONT:
         on_set_face(view, in);
@@ -275,6 +293,14 @@ static void on_docs(View  *view, ViewMsg *msg, GlvMsgDocs *docs){
     case VM_TEXT_INPUT_SET_SELECTION_COLOR:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_SET_SELECTION_COLOR),
             "float color[3]", "NULL", "changes selection color");
+        break;
+    case VM_TEXT_INPUT_CLEAR:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_CLEAR),
+            "NULL", "NULL", "removes all text");
+        break;
+    case VM_TEXT_INPUT_SET_TEXT:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_CLEAR),
+            "const wchar_t *text", "NULL", "removes all text and pase this instead");
         break;
     default:
         parent_proc(view, VM_GET_DOCS, msg, docs);
@@ -416,6 +442,17 @@ static void on_set_face_width(View *view, const Uint32 *face_width){
 
     data->face_size[0] = *face_width;
     glv_draw(view);
+}
+
+static void on_set_text(View *view, const wchar_t *text){
+    ctrl_a(view);
+    delete(view);
+    paste_text(view, text);
+} 
+
+static void on_clear(View *view){
+    ctrl_a(view);
+    delete(view);
 }
 
 static void resize_texture(View *view){
