@@ -28,6 +28,9 @@ static void on_delete_popup(View *view);
 static bool popup_queue_mark_as_deleted(PopupViewsQueue *queue, View *view);
 static void popup_queue_push(PopupViewsQueue *queue, View *view);
 
+static void enum_weak_views(GlvMgr *mgr, void (*enum_proc)(View *view, void *user_data), void *user_data);
+static void on_delete_weak_view(View *view);
+
 static View *__create_view(GlvMgr *mgr, View *parent, bool is_popup, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 static void __init_texture_1x1(View *view);
 static void __init_framebuffer(View *view);
@@ -133,7 +136,29 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     return __create_view(parent->mgr, parent, false, view_proc, manage_proc, user_context);
 }
 
+View *glv_create_weak(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
+    SDL_assert(mgr != NULL);
+    SDL_assert(view_proc != NULL);
+
+    View *result = __create_view(mgr, NULL, false, view_proc, manage_proc, user_context);
+
+    mgr->weak_views_cnt++;
+    mgr->weak_views = realloc(
+        mgr->weak_views,
+        mgr->weak_views_cnt * sizeof(View*));
+
+    mgr->weak_views[mgr->weak_views_cnt - 1] = result;
+
+    SDL_Point size = glv_get_size(mgr->root_view);
+    glv_set_size(result, size.x, size.y);
+
+    return result;
+}
+
 View *glv_create_popup(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
+    SDL_assert(mgr != NULL);
+    SDL_assert(view_proc != NULL);
+
     View *result = __create_view(mgr, NULL, true, view_proc, manage_proc, user_context);
 
     glv_set_focus(result);
@@ -166,6 +191,9 @@ void glv_delete(View *view){
     }
     else if(glv_is_popup(view)){
         on_delete_popup(view);
+    }
+    else if(glv_is_weak(view)){
+        on_delete_weak_view(view);
     }
     else{
         GlvChildChanged args = {
@@ -484,8 +512,8 @@ void glv_set_size_by(View *sender, View *view, unsigned int width, unsigned int 
             .x = width,
             .y = height,
         };
+        glv_push_event(view, VM_RESIZE, &new_size, sizeof(new_size));
         if(view->parent != NULL){
-            glv_push_event(view, VM_RESIZE, &new_size, sizeof(new_size));
             GlvChildChanged args = {
                 .child = view,
                 .sender = sender,
@@ -600,6 +628,10 @@ bool glv_is_root(View *view){
     SDL_assert(view != NULL);
 
     return view->mgr->root_view == view;
+}
+
+bool glv_is_weak(View *view){
+    return !glv_is_root(view) && view->parent == NULL;
 }
 
 bool glv_is_mouse_over(View *view){
@@ -801,6 +833,11 @@ void glv_draw(View *view){
     glv_redraw_window(view->mgr);
 }
 
+static void __enum_glv_draw_views_recursive(View *view, void *unused){
+    unused = unused;//unused
+    glv_draw_views_recursive(view);
+}
+
 void glv_draw_views_recursive(View *view){
     SDL_Rect parent = {
         .x = 0,
@@ -947,21 +984,28 @@ static void apply_events(GlvMgr *mgr){
             glv_log_err(mgr, "redrawing NULL View");
             return;
         }
-    
+
+        //redraw regular views
         __enum_draw_views(mgr->root_view, NULL);
 
-        if(popup_queue_nempty(&mgr->popup_queue)){
-            __enum_draw_views(popup_queue_get(&mgr->popup_queue).view, NULL);
-        }
+        //redraw 
+        if(popup_queue_nempty(&mgr->popup_queue)) __enum_draw_views(popup_queue_get(&mgr->popup_queue).view, NULL);
+        
+        //redraw week views
+        enum_weak_views(mgr, __enum_draw_views, NULL);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        //display regular view on window
         glv_draw_views_recursive(mgr->root_view);
-        if(popup_queue_nempty(&mgr->popup_queue)){
-            glv_draw_views_recursive(popup_queue_get(&mgr->popup_queue).view);
-        }
+
+        //display popup view on window
+        if(popup_queue_nempty(&mgr->popup_queue)) glv_draw_views_recursive(popup_queue_get(&mgr->popup_queue).view);
+        
+        //display weak views on window
+        enum_weak_views(mgr, __enum_glv_draw_views_recursive, NULL);
 
         SDL_GL_SwapWindow(mgr->window);
     }
@@ -1093,6 +1137,40 @@ static void on_delete_popup(View *view){
     }
     else{
         glv_log_err(view->mgr, "delete popup: deleteing popup view error, there is no popups in queue");
+    }
+}
+
+static void on_delete_weak_view(View *view){
+    View **src = view->mgr->weak_views;
+    View **dst = src;
+    View **end = src + view->mgr->weak_views_cnt;
+
+    while (src != end){
+        if(*src == *dst){
+            src++;
+        }
+        else{
+            *dst++ = *src++;
+        }
+    }
+
+    Uint32 cnt_week_veiws_removed = src - dst;
+    SDL_assert(cnt_week_veiws_removed == 1);
+
+    view->mgr->weak_views_cnt -= cnt_week_veiws_removed;
+
+    view->mgr->weak_views = realloc(
+        view->mgr->weak_views,
+        view->mgr->weak_views_cnt * sizeof(View*));
+}
+
+static void enum_weak_views(GlvMgr *mgr, void (*enum_proc)(View *view, void *user_data), void *user_data){
+    View **curr = mgr->weak_views;
+    View **end = curr + mgr->weak_views_cnt;
+
+    while (curr != end){
+        enum_proc(*curr, user_data);
+        curr++;
     }
 }
 
@@ -1230,13 +1308,30 @@ static bool __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
         mgr->required_redraw = true;
         return true;
     case SDL_WINDOWEVENT_SIZE_CHANGED:{
+        //send for receiver
+        //it`s important to manually make is_visible state else, if receiver is root, its can couse recurcive SDL_WINDOWEVENT_SIZE_CHANGED message call 
         SDL_Point new_size = {
-            .x = receiver->w = mgr->root_view->w = ev->data1,
-            .y = receiver->h = mgr->root_view->h = ev->data2,
+            .x = ev->data1,
+            .y = ev->data2,
         };
 
+        receiver->w = new_size.x;
+        receiver->h = new_size.y;
         glv_push_event(receiver, VM_RESIZE, &new_size, sizeof(new_size));
+
+        //send for each week view
+        View **curr_weak = mgr->weak_views;
+        View **weeks_end = curr_weak + mgr->weak_views_cnt;
+        while (curr_weak != weeks_end){
+            glv_set_size(*curr_weak, new_size.x, new_size.y);
+            curr_weak++;
+        }
+        
+        //send for root view if receiver is not root view
         if(receiver != mgr->root_view){
+        //it`s important to manually make is_visible state else, its can couse recurcive SDL_WINDOWEVENT_SIZE_CHANGED message call 
+            mgr->root_view->w = new_size.x;
+            mgr->root_view->h = new_size.y;
             glv_push_event(mgr->root_view, VM_RESIZE, &new_size, sizeof(new_size));
         }
     }return true;
@@ -1244,18 +1339,53 @@ static bool __handle_winevents(GlvMgr *mgr, const SDL_WindowEvent *ev){
         SDL_Point new_pos;
         SDL_Point new_size;
 
+        SDL_GetWindowSize(mgr->window, &new_size.x, &new_size.y);
+        SDL_GetWindowPosition(mgr->window, &new_pos.x, &new_pos.y);
+        
+        //send for receiver
+        //it`s important to manually make is_visible state else, if receiver is root, its can couse recurcive SDL_WINDOWEVENT_SHOWN message call 
         receiver->is_visible = true;
         glv_push_event(receiver, VM_SHOW, NULL, 0);
 
-        SDL_GetWindowSize(mgr->window, &new_size.x, &new_size.y);
-        SDL_GetWindowPosition(mgr->window, &new_pos.x, &new_pos.y);
+        glv_set_pos(receiver, new_pos.x, new_pos.y);
+        glv_set_size(receiver, new_size.x, new_size.y);
 
-        glv_push_event(receiver, VM_MOVE, &new_size, sizeof(new_pos));
-        glv_push_event(receiver, VM_RESIZE, &new_size, sizeof(new_size));
+        //send for each week view
+        View **curr_weak = mgr->weak_views;
+        View **weeks_end = curr_weak + mgr->weak_views_cnt;
+        while (curr_weak != weeks_end){
+            glv_show(*curr_weak);
+            glv_set_pos(*curr_weak, new_pos.x, new_pos.y);
+            glv_set_size(*curr_weak, new_size.x, new_size.y);
+            curr_weak++;
+        }
+
+        //send for root view if root view is not receiver
+        if(receiver != mgr->root_view){
+            //it`s important to manually make is_visible state else its can couse recurcive SDL_WINDOWEVENT_SHOWN message call 
+            mgr->root_view->is_visible = true;
+            glv_push_event(mgr->root_view, VM_SHOW, NULL, 0);
+            glv_set_pos(mgr->root_view, new_pos.x, new_pos.y);
+            glv_set_size(mgr->root_view, new_size.x, new_size.y);
+        }
     }return true;
     case SDL_WINDOWEVENT_HIDDEN:{
+        //send for receiver
         receiver->is_visible = false;
         glv_push_event(receiver, VM_HIDE, NULL, 0);
+
+        //send for each week view
+        View **curr_weak = mgr->weak_views;
+        View **weeks_end = curr_weak + mgr->weak_views_cnt;
+        while (curr_weak != weeks_end){
+            glv_push_event(mgr->root_view, VM_HIDE, NULL, 0);
+            curr_weak++;
+        }
+
+        //send for root view if root is not receiver
+        if(receiver != mgr->root_view){
+            glv_push_event(mgr->root_view, VM_HIDE, NULL, 0);
+        }
     }return true;
     case SDL_WINDOWEVENT_FOCUS_GAINED:{
         receiver->is_focused = true;

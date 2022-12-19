@@ -44,6 +44,11 @@ void init_spa(View *view, void *root_context){
     glv_text_input_set_selection_color(text_input, 0x00 / 350.0, 0x57 / 350.0, 0xb7 / 350.0);
     glv_set_font_height(text_input, 48);
     glv_set_size(text_input, 200, 48);
+
+    View *text = glv_create_weak(mgr, glv_text_view_proc, NULL, NULL);
+    glv_text_view_set_text(text, L"some text");
+    glv_set_foreground(text, glv_gen_texture_solid_color(255, 0, 0, 255));
+
 }
 
 int main(void){

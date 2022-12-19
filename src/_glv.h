@@ -131,6 +131,9 @@ struct GlvMgr{
 
     PopupViewsQueue popup_queue;
 
+    Uint32 weak_views_cnt;
+    View **weak_views;
+
     Uint32 min_frametime_ms;
     Uint32 last_frame_drawed_time_ms;
 
