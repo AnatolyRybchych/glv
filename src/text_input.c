@@ -32,6 +32,9 @@ typedef struct Data{
     GlvFontFaceId face_id;
     Uint32 face_size[2];
 
+    float carete_color[3];
+    float selection_color[3];
+
     bool texture_resize_needed;
 } Data;
 
@@ -47,6 +50,11 @@ static void on_docs(View  *view, ViewMsg *msg, GlvMsgDocs *docs);
 static void on_set_carete_pos(View  *view, const Uint32 *carete_pos); 
 static void on_key_down(View  *view, const GlvKeyDown *key); 
 static void on_set_slection(View  *view, const Uint32 selection[2]); 
+static void on_get_text(View  *view, wchar_t **text); 
+static void on_get_selection(View  *view, Uint32 selection[2]); 
+static void on_get_carete(View  *view, Uint32 *cursor); 
+static void on_set_carete_color(View  *view, const float color[3]); 
+static void on_set_selection_color(View  *view, const float color[3]); 
 
 static void resize_texture(View *view);
 static void draw_text(View *view);
@@ -87,6 +95,38 @@ void glv_text_input_set_selection(View *text_input, Uint32 first, Uint32 count){
     glv_push_event(text_input, VM_TEXT_INPUT_SET_CARETE_POS, args, sizeof(args));
 }
 
+const wchar_t *glv_text_input_get_text(View *text_input){
+    SDL_assert(text_input != NULL);
+
+    wchar_t *result = NULL;
+    glv_call_event(text_input, VM_TEXT_INPUT_GET_TEXT, NULL, &result);
+    return result;
+}
+
+void glv_text_input_get_selection(View *text_input, Uint32 selection[2]){
+    SDL_assert(text_input != NULL);
+    glv_call_event(text_input, VM_TEXT_INPUT_GET_SELECTION, NULL, selection);
+}
+
+Uint32 glv_text_input_get_carete(View *text_input){
+    SDL_assert(text_input != NULL);
+    Uint32 result = 0;
+    glv_call_event(text_input, VM_TEXT_INPUT_GET_SELECTION, NULL, &result);
+    return result;
+}
+
+void glv_text_input_set_carete_color(View *text_input, float r, float g, float b){
+    SDL_assert(text_input != NULL);
+    float rgb[3] = {r, g, b};
+    glv_push_event(text_input, VM_TEXT_INPUT_SET_CARETE_COLOR, rgb, sizeof(rgb));
+}
+
+void glv_text_input_set_selection_color(View *text_input, float r, float g, float b){
+    SDL_assert(text_input != NULL);
+    float rgb[3] = {r, g, b};
+    glv_push_event(text_input, VM_TEXT_INPUT_SET_SELECTION_COLOR, rgb, sizeof(rgb));
+}
+
 static void proc(View *view, ViewMsg msg, void *in, void *out){
     switch (msg){
     case VM_TEXT:
@@ -115,6 +155,21 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
         break;
     case VM_TEXT_INPUT_SET_SELECTION:
         on_set_slection(view, in);
+        break;
+    case VM_TEXT_INPUT_GET_TEXT:
+        on_get_text(view, out);
+        break;
+    case VM_TEXT_INPUT_GET_SELECTION:
+        on_get_selection(view, out);
+        break;
+    case VM_TEXT_INPUT_GET_CARETE:
+        on_get_carete(view, out);
+        break;
+    case VM_TEXT_INPUT_SET_CARETE_COLOR:
+        on_set_carete_color(view, in);
+        break;
+    case VM_TEXT_INPUT_SET_SELECTION_COLOR:
+        on_set_selection_color(view, in);
         break;
     case VM_GET_DOCS:
         on_docs(view, in, out);
@@ -193,6 +248,30 @@ static void on_docs(View  *view, ViewMsg *msg, GlvMsgDocs *docs){
     case VM_TEXT_INPUT_SET_SELECTION:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_SET_CARETE_POS),
             "const Uint32 selection[2]", "NULL", "set text selection from selection[0], selection[1] elements");
+        break;
+    case VM_TEXT_INPUT_TEXT_CHANGED:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_TEXT_CHANGED),
+            "NULL", "NULL", "invokes on any text changed");
+        break;
+    case VM_TEXT_INPUT_GET_TEXT:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_GET_TEXT),
+            "NULL", "wchar_t **text", "resturns current text");
+        break;
+    case VM_TEXT_INPUT_GET_SELECTION:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_GET_SELECTION),
+            "NULL", "Uint32 selection[2]", "returns selection: [0] is start, [1] i count");
+        break;
+    case VM_TEXT_INPUT_GET_CARETE:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_GET_CARETE),
+            "NULL", "Uint32 *carete", "returns carete position");
+        break;
+    case VM_TEXT_INPUT_SET_CARETE_COLOR:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_SET_CARETE_COLOR),
+            "float color[3]", "NULL", "changes carete color");
+        break;
+    case VM_TEXT_INPUT_SET_SELECTION_COLOR:
+        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_INPUT_SET_SELECTION_COLOR),
+            "float color[3]", "NULL", "changes selection color");
         break;
     default:
         parent_proc(view, VM_GET_DOCS, msg, docs);
@@ -280,6 +359,42 @@ static void on_set_slection(View  *view, const Uint32 selection[2]){
     glv_draw(view);
 }
 
+static void on_get_text(View  *view, wchar_t **text){
+    Data *data = glv_get_view_data(view, data_offset);
+    *text = data->text;
+}
+
+static void on_get_selection(View  *view, Uint32 selection[2]){
+    Data *data = glv_get_view_data(view, data_offset);
+    selection[0] = data->selection[0];
+    selection[1] = data->selection[1];
+}
+
+static void on_get_carete(View  *view, Uint32 *cursor){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    *cursor = data->carete;
+}
+
+static void on_set_carete_color(View  *view, const float color[3]){
+    Data *data = glv_get_view_data(view, data_offset);
+    data->carete_color[0] = color[0];
+    data->carete_color[1] = color[1];
+    data->carete_color[2] = color[2];
+
+    glv_draw(view);
+}
+
+static void on_set_selection_color(View  *view, const float color[3]){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    data->selection_color[0] = color[0];
+    data->selection_color[1] = color[1];
+    data->selection_color[2] = color[2];
+
+    glv_draw(view);
+} 
+
 static void resize_texture(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
@@ -308,11 +423,18 @@ static void draw_text(View *view){
 static void draw_bg(View *view){
     GlvMgr *mgr = glv_get_mgr(view);
     GLuint bg = glv_get_bg_texture(view);
+    GLuint fg = glv_get_fg_texture(view);
 
     float mat[4*4];
-    mvp_identity(mat);
-
-    glv_draw_texture_mat(mgr, bg, mat);
+        mvp_identity(mat);
+    if(bg == 0){
+        glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ZERO, GL_ZERO);
+        glv_draw_texture_mat(mgr, fg, mat);
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+    else{
+        glv_draw_texture_mat(mgr, bg, mat);
+    }
 }
 
 static void draw_carete(View *view){
@@ -344,7 +466,7 @@ static void draw_carete(View *view){
         (float[2]){carete_lt[0], carete_rb[1]},
         (float[2]){carete_rb[0], carete_lt[1]},
         
-        (float[3]){0.6, 0.4, 0.3}
+        data->carete_color
     );
 }
 
@@ -379,7 +501,7 @@ static void draw_selection(View *view){
         (float[2]){selection_lt[0], selection_rb[1]},
         (float[2]){selection_rb[0], selection_lt[1]},
         
-        (float[3]){0.0, 0.0, 0.0}
+        data->selection_color
     );
 }
 
@@ -410,6 +532,8 @@ static void paste_text(View *view, const wchar_t *text){
     data->text_len = data->text_len + len_paste;
 
     instant_carete_pos(view, data->carete + len_paste);
+
+    glv_push_event(view, VM_TEXT_INPUT_TEXT_CHANGED, NULL, 0);
 }
 
 static void backspace(View *view){
@@ -600,6 +724,7 @@ static void delete_rng(View *view, Uint32 from, Uint32 cnt){
     data->text = new_text;
     data->text_len = new_len;
 
+    glv_push_event(view, VM_TEXT_INPUT_TEXT_CHANGED, NULL, 0);
     glv_draw(view);
 }
 
