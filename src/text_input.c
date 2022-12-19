@@ -2,11 +2,6 @@
 
 #define parent_proc(view, msg, in, out) glv_proc_default(view, msg, in, out)
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    TODO: utf-8 to unicode converting
-    all characters just mapped as ascii to unicode
-*/
-
 typedef struct Data{
     wchar_t *text;
     Uint32 text_len;

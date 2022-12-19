@@ -35,13 +35,13 @@ void init_spa(View *view, void *root_context){
     glv_new_freetype_face(mgr, "Sarai.ttf", 0);
 
     glv_stack_panel_set_alignment(view, 0, 0);
-    glv_set_background(view, glv_gen_texture_solid_color(20, 16, 7, 255));
+    glv_set_background(view, glv_gen_texture_solid_color(0x00, 0x80, 0xcc, 255));
 
     View *text_input = glv_create(view, glv_text_input_proc, NULL, NULL);
-    glv_set_background(text_input, glv_gen_texture_solid_color(10, 8, 3, 255));
-    glv_set_foreground(text_input, glv_gen_texture_solid_color(200, 200, 0, 255));
-    glv_text_input_set_carete_color(text_input, 0.8, 0.6, 0.4);
-    glv_text_input_set_selection_color(text_input, 0.8, 0.6, 0.4);
+    glv_set_background(text_input, glv_gen_texture_solid_color(0x00, 0x57, 0xb7, 255));
+    glv_set_foreground(text_input, glv_gen_texture_solid_color(0xff, 0xd7, 00, 255));
+    glv_text_input_set_carete_color(text_input, 0xff /(float) 0xff, 0xd7 /(float) 0xff, 0x00 /(float) 0xff);
+    glv_text_input_set_selection_color(text_input, 0x00 / 350.0, 0x57 / 350.0, 0xb7 / 350.0);
     glv_set_font_height(text_input, 48);
     glv_set_size(text_input, 200, 48);
 }
