@@ -62,6 +62,7 @@ static void k_right(View *view);
 static void ctrl_v(View *view);
 static void ctrl_c(View *view);
 static void ctrl_x(View *view);
+static void ctrl_a(View *view);
 static void esc(View *view);
 static void delete_rng(View *view, Uint32 from, Uint32 cnt);
 static void erse_selected(View *view);
@@ -239,6 +240,11 @@ static void on_key_down(View  *view, const GlvKeyDown *key){
             ctrl_c(view);
         }
     } break;
+    case SDL_SCANCODE_A:{
+        if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
+            ctrl_a(view);
+        }
+    } break;
     case SDL_SCANCODE_X:{
         if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
             ctrl_x(view);
@@ -375,7 +381,6 @@ static void draw_selection(View *view){
         
         (float[3]){0.0, 0.0, 0.0}
     );
-
 }
 
 static Uint32 calc_text_width(View *view, const wchar_t *text, Uint32 text_len){
@@ -548,8 +553,7 @@ static void ctrl_c(View *view){
         free(text);
     }
     else{
-        Uint32 selection[2] = {0, data->text_len};
-        instant_selection(view, selection);
+        ctrl_a(view);
         ctrl_c(view);
     }
 }
@@ -561,6 +565,12 @@ static void ctrl_x(View *view){
         ctrl_c(view);
         delete(view);
     }
+}
+
+static void ctrl_a(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+    Uint32 selection[2] = {0, data->text_len};
+    instant_selection(view, selection);
 }
 
 static void esc(View *view){

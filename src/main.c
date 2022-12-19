@@ -36,14 +36,6 @@ void init_spa(View *view, void *root_context){
 
     glv_set_background(view, glv_gen_texture_solid_color(60, 50, 35, 255));
     glv_set_foreground(view, glv_gen_texture_solid_color(160, 100, 80, 255));
-
-    View *popup = glv_create_popup(mgr, glv_text_view_proc, NULL, NULL);
-    
-    glv_text_view_set_text(popup, L"text");
-
-    glv_set_foreground(popup, glv_gen_texture_solid_color(255, 0, 0, 255));
-
-    glv_delete(popup);
 }
 
 int main(void){

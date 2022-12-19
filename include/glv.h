@@ -115,6 +115,9 @@ void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), vo
 //manage_proc used to handle events
 //user_context can be accessed in manage_proc
 View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void *user_context);
+
+//popup views displays in queue, current popup displays on top
+//if there is popup, common view doesnt handles input events
 View *glv_create_popup(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 
 bool glv_is_child_of(View *view, View *child);
