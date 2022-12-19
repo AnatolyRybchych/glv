@@ -133,7 +133,9 @@ View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void 
     SDL_assert(parent != NULL);
     SDL_assert(view_proc != NULL);
 
-    return __create_view(parent->mgr, parent, false, view_proc, manage_proc, user_context);
+    View *result = __create_view(parent->mgr, parent, false, view_proc, manage_proc, user_context);
+    glv_show(result);
+    return result;
 }
 
 View *glv_create_weak(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context){
@@ -151,6 +153,7 @@ View *glv_create_weak(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, v
 
     SDL_Point size = glv_get_size(mgr->root_view);
     glv_set_size(result, size.x, size.y);
+    glv_show(result);
 
     return result;
 }
@@ -165,6 +168,11 @@ View *glv_create_popup(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, 
 
     SDL_Point size = glv_get_size(mgr->root_view);
     glv_set_size(result, size.x, size.y);
+
+    //show if it`s top popup
+    if(!popup_queue_nempty(&mgr->popup_queue)){
+        glv_show(result);
+    }
 
     popup_queue_push(&mgr->popup_queue, result);
 
@@ -1126,7 +1134,13 @@ static void popup_queue_remove(PopupViewsQueue *queue){
 
     if(popup_queue_nempty(queue)){
         PopupViewContainer next = popup_queue_get(queue);
-        if(next.is_deleted) popup_queue_remove(queue);
+        if(next.is_deleted){
+            popup_queue_remove(queue);
+        }
+        else{
+            glv_show(popup_queue_get(queue).view);
+            glv_set_focus(popup_queue_get(queue).view);
+        }
     }
 }
 
