@@ -20,14 +20,11 @@ typedef struct Data{
     //carete postion in pixels reletive to text pos
     int carete_pos[2];
 
-    //carete size in pixels
-    int carete_size[2];
-
     Uint32 selection[2];
     //selection pos in pixels reletive to text pos
-    int selection_pos[2];
+    int selection_pos;
     //selection size in pixels
-    int selection_size[2];
+    int selection_size;
 
     GlvFontFaceId face_id;
     Uint32 face_size[2];
@@ -46,15 +43,18 @@ static void on_delete(View *view);
 static void on_text(View *view, const char *text);
 static void on_resize(View *view, const SDL_Point *new_size);
 static void on_draw(View *view);
-static void on_docs(View  *view, ViewMsg *msg, GlvMsgDocs *docs); 
-static void on_set_carete_pos(View  *view, const Uint32 *carete_pos); 
-static void on_key_down(View  *view, const GlvKeyDown *key); 
-static void on_set_slection(View  *view, const Uint32 selection[2]); 
-static void on_get_text(View  *view, wchar_t **text); 
-static void on_get_selection(View  *view, Uint32 selection[2]); 
-static void on_get_carete(View  *view, Uint32 *cursor); 
+static void on_docs(View *view, ViewMsg *msg, GlvMsgDocs *docs); 
+static void on_set_carete_pos(View *view, const Uint32 *carete_pos); 
+static void on_key_down(View *view, const GlvKeyDown *key); 
+static void on_set_slection(View *view, const Uint32 selection[2]); 
+static void on_get_text(View *view, wchar_t **text); 
+static void on_get_selection(View *view, Uint32 selection[2]); 
+static void on_get_carete(View *view, Uint32 *cursor); 
 static void on_set_carete_color(View  *view, const float color[3]); 
-static void on_set_selection_color(View  *view, const float color[3]); 
+static void on_set_selection_color(View *view, const float color[3]); 
+static void on_set_face(View *view, const GlvFontFaceId *face); 
+static void on_set_face_height(View *view, const Uint32 *face_height); 
+static void on_set_face_width(View *view, const Uint32 *face_width); 
 
 static void resize_texture(View *view);
 static void draw_text(View *view);
@@ -171,6 +171,15 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
     case VM_TEXT_INPUT_SET_SELECTION_COLOR:
         on_set_selection_color(view, in);
         break;
+    case VM_SET_FONT:
+        on_set_face(view, in);
+        break;
+    case VM_SET_FONT_HEIGHT:
+        on_set_face_height(view, in);
+        break;
+    case VM_SET_FONT_WIDTH:
+        on_set_face_width(view, in);
+        break;
     case VM_GET_DOCS:
         on_docs(view, in, out);
         break;
@@ -191,12 +200,6 @@ static void on_create(View *view){
 
     data->text = malloc(2);
     data->text[0] = 0;
-
-    data->carete_size[0] = 2;
-    data->carete_size[1] = 48;
-
-    data->selection_size[1] = 48;
-    data->selection_pos[1] = 0;
 
     data->face_size[1] = 48;
 }
@@ -342,7 +345,6 @@ static void on_set_slection(View  *view, const Uint32 selection[2]){
 
     if(selection[1] == 0){
         data->selection[0] = data->selection[1] = 0;
-        data->selection_pos[0] = data->selection_pos[1] = 0;
         glv_draw(view);
         return;
     }
@@ -350,8 +352,8 @@ static void on_set_slection(View  *view, const Uint32 selection[2]){
     Uint32 s[2] = {selection[0], selection[1]};
     if(s[1] > data->text_len - s[0]) s[1] = data->text_len - s[0];
 
-    data->selection_pos[0] = calc_text_width(view, data->text, s[0]);
-    data->selection_size[0] = calc_text_width(view, data->text + s[0], s[1]);
+    data->selection_pos = calc_text_width(view, data->text, s[0]);
+    data->selection_size = calc_text_width(view, data->text + s[0], s[1]);
 
     data->selection[0] = s[0];
     data->selection[1] = s[1];
@@ -393,7 +395,28 @@ static void on_set_selection_color(View  *view, const float color[3]){
     data->selection_color[2] = color[2];
 
     glv_draw(view);
-} 
+}
+
+static void on_set_face(View *view, const GlvFontFaceId *face){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    data->face_id = *face;
+    glv_draw(view);
+}
+
+static void on_set_face_height(View *view, const Uint32 *face_height){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    data->face_size[1] = *face_height;
+    glv_draw(view);
+}
+
+static void on_set_face_width(View *view, const Uint32 *face_width){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    data->face_size[0] = *face_width;
+    glv_draw(view);
+}
 
 static void resize_texture(View *view){
     Data *data = glv_get_view_data(view, data_offset);
@@ -450,8 +473,8 @@ static void draw_carete(View *view){
     };
 
     int carete_rb_px[2] = {
-        [0] = carete_lt_px[0] + data->carete_size[0],
-        [1] = carete_lt_px[1] + data->carete_size[1],
+        [0] = carete_lt_px[0] + (data->face_size[1] / 16 + 1),
+        [1] = carete_lt_px[1] + data->face_size[1],
     };
 
     float carete_lt[2];
@@ -480,13 +503,13 @@ static void draw_selection(View *view){
     int *_size = (int*)&size;
 
     int selection_lt_px[2] = {
-        [0] = data->selection_pos[0] + data->text_pos[0],
-        [1] = data->selection_pos[1] + data->text_pos[1],
+        [0] = data->selection_pos + data->text_pos[0],
+        [1] = 0 + data->text_pos[1],
     };
 
     int selection_rb_px[2] = {
-        [0] = selection_lt_px[0] + data->selection_size[0],
-        [1] = selection_lt_px[1] + data->selection_size[1],
+        [0] = selection_lt_px[0] + data->selection_size,
+        [1] = selection_lt_px[1] + data->face_size[1],
     };
 
     float selection_lt[2];
