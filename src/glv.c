@@ -257,6 +257,8 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
     init_spa(mgr.root_view, root_user_data);
 
     SDL_ShowWindow(mgr.window);
+
+    //event loop
     SDL_Event ev;
     while (mgr.is_running){
         while(SDL_PollEvent(&ev)){
@@ -267,19 +269,25 @@ int glv_run(ViewProc root_view_proc, ViewManage root_view_manage, void *root_use
         SDL_Delay(mgr.min_frametime_ms);
     }
 
+    //delete weak views
+    enum_weak_views(&mgr, __enum_delete_childs, NULL);
 
+    //delete popup views
     while (popup_queue_nempty(&mgr.popup_queue)){
         glv_delete(popup_queue_get(&mgr.popup_queue).view);
     }
 
+    //delete root view
     if(mgr.root_view != NULL){
         glv_delete(mgr.root_view);
     }
 
+    //handle deleting and others unhandled messages
     while(SDL_PollEvent(&ev)){
         handle_events(&mgr, &ev);
     }
 
+    //cleanup other mgr data
     return delete_mgr(&mgr);
 }
 

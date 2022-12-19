@@ -12,6 +12,31 @@
 #include <glv/math/coords.h>
 
 typedef struct GlvMgr GlvMgr;
+
+
+/*          
+                    View 
+        there is three kinds of view
+
+    regular view:
+        created by glv_create() or glv_run()
+        it displays as views tree with single root
+        and located on bottom layer
+    
+    popup view:
+        created by glv_create_popup()
+        it displays in queue of views, there is only one can be diplayed at time
+        but after previous deleted, next will automatically displayed
+        located on top layer and locks input to general views if exists
+    
+    week view:
+        created by glv_create_weak()
+        located on layer between regular views and popup views
+        doesnt receives most input events
+        can be many of thees views at time
+    
+    all views in same layers are draws in creation order and can be overlapped
+*/
 typedef struct View View;
 
 typedef unsigned int ViewMsg;
@@ -117,14 +142,15 @@ void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), vo
 View *glv_create(View *parent, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 
 //weak view doesnt receives events from input
-//week view is allways on top but can be owerlapped by another weak view
+//week view is allways over the general view, but under popup views and can be overlapped by weak view, created later
 //in general for displaying effects, statuses and other independent of user stuff
 View *glv_create_weak(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 
-//popup views displays in queue, current popup displays on top
+//popup views displays in queue, current popup displays allways on top
 //if there is popup, common view doesnt handles input events
 View *glv_create_popup(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, void *user_context);
 
+//returns true if parent of "child" is "view" 
 bool glv_is_child_of(View *view, View *child);
 
 //deletes view and all childs
@@ -235,11 +261,19 @@ SDL_Point glv_get_size(View *view);
 //return NULL if view is root
 View *glv_get_Parent(View *view);
 
-//if view is root, returns desktop position 
+//if view is root, returns position on desktop 
 SDL_Point glv_view_to_parent(View *view, SDL_Point point);
+
+//converts point reletive to view to point on window 
 SDL_Point glv_view_to_window(View *view, SDL_Point point);
+
+//converts point reletive to window to point on view 
 SDL_Point glv_window_to_view(View *view, SDL_Point point);
+
+//converts point reletive to window to point on desktop 
 SDL_Point glv_window_to_desktop(GlvMgr *mgr, SDL_Point point);
+
+//converts point reletive to window to desktop on point 
 SDL_Point glv_desktop_to_window(GlvMgr *mgr, SDL_Point point);
 
 //returns is_focused status
@@ -248,10 +282,13 @@ bool glv_is_focused(View *view);
 //returns is_visisble status
 bool glv_is_visible(View *view);
 
+//returns true if view is popup
 bool glv_is_popup(View *view);
 
+//returns true if view is root
 bool glv_is_root(View *view);
 
+//returns true if views is weak
 bool glv_is_weak(View *view);
 
 //returns is_hovered status
