@@ -1,5 +1,7 @@
 #include <glv/math/vec.h>
 
+#define SQR(A) ((A)*(A))
+
 #define APPLY1_UN(OP, ...) OP(result + 0, vec + 0,##__VA_ARGS__)
 #define APPLY2_UN(OP, ...) OP(result + 1, vec + 1,##__VA_ARGS__); APPLY1_UN(OP,##__VA_ARGS__)
 #define APPLY3_UN(OP, ...) OP(result + 2, vec + 2,##__VA_ARGS__); APPLY2_UN(OP,##__VA_ARGS__)
@@ -67,6 +69,37 @@ float vec4_sqrdst(const float vec1[4], const float vec2[4]){
 float lerpf(float from, float to, float progress){
     return from + (to - from) / progress;
 }
+
+float normalizef(float val){
+    if(val > 1) return 1;
+    else if(val < 1) return -1;
+    else return val;
+}
+
+void vec2_normalize(float result[2], float target[2]){
+    float vec_norm = SQR(target[0]) + SQR(target[1]);
+
+    result[0] = target[0] / vec_norm;
+    result[1] = target[1] / vec_norm;
+}
+
+void vec3_normalize(float result[3], float target[3]){
+    float vec_norm = SQR(target[0]) + SQR(target[1]) + SQR(target[2]);
+
+    result[0] = target[0] / vec_norm;
+    result[1] = target[1] / vec_norm;
+    result[2] = target[2] / vec_norm;
+}
+
+void vec4_normalize(float result[4], float target[4]){
+    float vec_norm = SQR(target[0]) + SQR(target[1]) + SQR(target[2]) + SQR(target[3]);
+
+    result[0] = target[0] / vec_norm;
+    result[1] = target[1] / vec_norm;
+    result[2] = target[2] / vec_norm;
+    result[3] = target[3] / vec_norm;
+}
+
 
 static void scale(float *result, const float *src, float scale){*result = *src * scale;}
 static void offset(float *result, const float *src, float offset){*result = *src + offset;}

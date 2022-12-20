@@ -43,6 +43,16 @@
 #define vec3_sqrdst __glv_vec3_sqrdst
 #define vec4_sqrdst __glv_vec4_sqrdst
 
+#define normalizef __glv_normalizef
+#define vec2_normalize __glv_vec2_normalize
+#define vec3_normalize __glv_vec3_normalize
+#define vec4_normalize __glv_vec4_normalize
+
+#define vec2_eq_normalize(this) vec2_normalize(this, this)
+#define vec3_eq_normalize(this) vec3_normalize(this, this)
+#define vec4_eq_sqrdst(this) vec4_normalize(this,this)
+
+
 #define vec2_eq_scale(this, value) vec2_scale(this, this, value)
 #define vec2_eq_offset(this, value) vec2_offset(this, this, value)
 #define vec2_eq_add(this, another) vec2_add(this, this, another)
@@ -84,6 +94,11 @@ float sqrdstf(float value1, float value2);
 float vec2_sqrdst(const float vec1[2], const float vec2[2]);
 float vec3_sqrdst(const float vec1[3], const float vec2[3]);
 float vec4_sqrdst(const float vec1[4], const float vec2[4]);
+
+float normalizef(float val);
+void vec2_normalize(float result[2], float target[2]);
+void vec3_normalize(float result[3], float target[3]);
+void vec4_normalize(float result[4], float target[4]);
 
 void vec2_scale(float result[2], const float vec[2], float value);
 void vec2_offset(float result[2], const float vec[2], float value);
