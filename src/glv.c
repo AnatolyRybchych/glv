@@ -1012,7 +1012,11 @@ static void apply_events(GlvMgr *mgr){
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, mgr->root_view->w, mgr->root_view->h);
-        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFuncSeparate(
+            GLV_DEFAULT_BLEND_FACTOR_SRC_COLOR, 
+            GLV_DEFAULT_BLEND_FACTOR_DST_COLOR, 
+            GLV_DEFAULT_BLEND_FACTOR_SRC_ALPHA, 
+            GLV_DEFAULT_BLEND_FACTOR_DST_ALPHA);
 
         //display regular view on window
         glv_draw_views_recursive(mgr->root_view);
@@ -1090,7 +1094,11 @@ static bool __init_gl_ctx(GlvMgr *mgr){
     SDL_GL_MakeCurrent(mgr->window, mgr->gl_rc);
 
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+    glBlendFuncSeparate(
+            GLV_DEFAULT_BLEND_FACTOR_SRC_COLOR, 
+            GLV_DEFAULT_BLEND_FACTOR_DST_COLOR, 
+            GLV_DEFAULT_BLEND_FACTOR_SRC_ALPHA, 
+            GLV_DEFAULT_BLEND_FACTOR_DST_ALPHA);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     return true;

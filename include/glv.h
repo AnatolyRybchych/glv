@@ -11,6 +11,14 @@
 #include <glv/math/line.h>
 #include <glv/math/coords.h>
 
+
+//default blend mode
+//should be restored if changes anywhere
+#define GLV_DEFAULT_BLEND_FACTOR_SRC_COLOR GL_SRC_ALPHA
+#define GLV_DEFAULT_BLEND_FACTOR_SRC_ALPHA GL_SRC_ALPHA
+#define GLV_DEFAULT_BLEND_FACTOR_DST_COLOR GL_ONE_MINUS_SRC_ALPHA
+#define GLV_DEFAULT_BLEND_FACTOR_DST_ALPHA GL_ONE_MINUS_SRC_ALPHA
+
 typedef struct GlvMgr GlvMgr;
 
 

@@ -1,5 +1,7 @@
 #include "_glv.h"
 
+#define SQRT2 1.41421356237
+
 static GLuint init_normal_vbo(void);
 static GLuint init_normal_uv_bo(void);
 
@@ -478,10 +480,10 @@ static void glv_draw_polygon_sector_rel_polycolor_(GlvMgr *mgr, float solid_p[2]
 
     float colors[] = {
         color_sp[0], color_sp[1], color_sp[2], line_point_dst(p1_px, p2_px, solid_px) / 2.0f,
-        color_p1[0], color_p1[1], color_p1[2], 0.0,
-        color_p2[0], color_p2[1], color_p2[2], 0.0
+        color_p1[0], color_p1[1], color_p1[2], 0,
+        color_p2[0], color_p2[1], color_p2[2], 0
     };
-
+    
     glv_draw_triangles_rel(mgr, 3, vertices, 2, colors, 4);
 }
 

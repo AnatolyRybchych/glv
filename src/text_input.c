@@ -516,6 +516,8 @@ static void draw_carete(View *view){
     coords_rel_sz(carete_lt, carete_lt_px, _size);
     coords_rel_sz(carete_rb, carete_rb_px, _size);
 
+    glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glv_draw_quadrangle_rel(mgr, 
         carete_lt,
         carete_rb,
@@ -524,6 +526,12 @@ static void draw_carete(View *view){
         
         data->carete_color
     );
+
+    glBlendFuncSeparate(
+        GLV_DEFAULT_BLEND_FACTOR_SRC_COLOR, 
+        GLV_DEFAULT_BLEND_FACTOR_DST_COLOR, 
+        GLV_DEFAULT_BLEND_FACTOR_SRC_ALPHA, 
+        GLV_DEFAULT_BLEND_FACTOR_DST_ALPHA);
 }
 
 static void draw_selection(View *view){

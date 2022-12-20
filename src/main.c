@@ -9,23 +9,19 @@
 #include <glv/popup_panel.h>
 #include <glv/text_input.h>
 
-// void manage_root(View *view, ViewMsg msg, void *args, void *root_context){
-//     view = view;
-//     msg = msg;
-//     args = args;
-//     root_context = root_context;
-//     switch (msg){
-//     case VM_MOUSE_DOWN:{
-//         GlvMouseDown *e = args;
-//         if(e->button == 1){
-//             glv_popup_panel_show_popup(view);
-//         }
-//         else{
-//             glv_popup_panel_hide_popup(view);
-//         }
-//     }break;
-//     }
-// }
+void manage_canvas(View *view, ViewMsg msg, void *args, void *root_context){
+    view = view;
+    msg = msg;
+    args = args;
+    root_context = root_context;
+    switch (msg){
+    case VM_DRAW:{
+        GlvMgr *mgr = glv_get_mgr(view);
+
+        mgr = mgr;
+    }break;
+    }
+}
 
 void init_spa(View *view, void *root_context){
     root_context = root_context;//unused
@@ -45,10 +41,8 @@ void init_spa(View *view, void *root_context){
     glv_set_font_height(text_input, 48);
     glv_set_size(text_input, 200, 48);
 
-    View *text = glv_create_weak(mgr, glv_text_view_proc, NULL, NULL);
-    glv_text_view_set_text(text, L"some text");
-    glv_set_foreground(text, glv_gen_texture_solid_color(255, 0, 0, 255));
-
+    View *canvas = glv_create_weak(mgr, glv_canvas_proc, manage_canvas, NULL);
+    canvas = canvas;
 }
 
 int main(void){

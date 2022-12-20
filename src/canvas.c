@@ -48,7 +48,7 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
             data->required_resize = false;
         }
         glViewport(0, 0, data->last_sz.x, data->last_sz.y);
-        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClearColor(0.0, 0.0, 0.0, 0.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
     } break;
