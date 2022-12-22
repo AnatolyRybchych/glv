@@ -1575,23 +1575,22 @@ static void __enum_delete_childs(View *child, void *unused){
 }
 
 static void __enum_call_mouse_button_event(View *child, void *args_ptr){
-    if(child->is_visible == false) return;
     _MBEvEnumArgs *args = args_ptr;
     SDL_Point curr;
-
-    args->ev.x -= child->x;
-    args->ev.y -= child->y;
 
     curr.x = args->ev.x;
     curr.y = args->ev.y;
 
-    if(curr.x < 0 || curr.y < 0
-    || curr.x > (int)child->w || curr.y > (int)child->h){
+    args->ev.x -= child->x;
+    args->ev.y -= child->y;
+
+    if(args->ev.x < 0 || args->ev.y < 0
+    || args->ev.x > (int)child->w || args->ev.y > (int)child->h){
         if(child->is_focused){
             child->is_focused = false;
             glv_push_event(child, VM_UNFOCUS, NULL, 0);
         }
-        return;
+        goto RESTORE_POS;
     }
 
     glv_set_secondary_focus(child);
@@ -1599,6 +1598,7 @@ static void __enum_call_mouse_button_event(View *child, void *args_ptr){
     glv_call_manage(child, args->message, &args->ev);
     glv_enum_visible_childs(child, __enum_call_mouse_button_event, &args);
 
+    RESTORE_POS:
     args->ev.x = curr.x;
     args->ev.y = curr.y;
 }
@@ -1607,16 +1607,16 @@ static void __enum_call_mouse_move_event(View *child, void *args_ptr){
     GlvMouseMove *args = args_ptr;
     SDL_Point curr;
 
-    args->x -= child->x;
-    args->y -= child->y;
-
     curr.x = args->x;
     curr.y = args->y;
 
-    if(curr.x < 0 || curr.y < 0
-    || curr.x > (int)child->w || curr.y > (int)child->h){
+    args->x -= child->x;
+    args->y -= child->y;
+
+    if(args->x < 0 || args->y < 0
+    || args->x > (int)child->w || args->y > (int)child->h){
         __set_is_mouse_over(child, false);
-        return;
+        goto RESTORE_POS;
     }
 
     __set_is_mouse_over(child, true);
@@ -1624,6 +1624,7 @@ static void __enum_call_mouse_move_event(View *child, void *args_ptr){
     glv_call_manage(child, VM_MOUSE_MOVE, args);
     glv_enum_visible_childs(child, __enum_call_mouse_move_event, args);
     
+    RESTORE_POS:
     args->x = curr.x;
     args->y = curr.y;
 }
