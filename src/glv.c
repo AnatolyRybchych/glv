@@ -180,6 +180,8 @@ View *glv_create_popup(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, 
 }
 
 bool glv_is_child_of(View *view, View *child){
+    SDL_assert(view != NULL);
+
     bool is_child = false;
     
     void *args[] = {
@@ -189,6 +191,12 @@ bool glv_is_child_of(View *view, View *child){
 
     glv_enum_childs(view, __enum_is_child, args);
     return is_child;
+}
+
+Uint32 glv_childs_cnt(View *view){
+    SDL_assert(view != NULL);
+
+    return view->childs_cnt;
 }
 
 void glv_delete(View *view){

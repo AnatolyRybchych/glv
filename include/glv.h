@@ -161,6 +161,9 @@ View *glv_create_popup(GlvMgr *mgr, ViewProc view_proc, ViewManage manage_proc, 
 //returns true if parent of "child" is "view" 
 bool glv_is_child_of(View *view, View *child);
 
+//returns count of child views for current
+Uint32 glv_childs_cnt(View *view);
+
 //deletes view and all childs
 void glv_delete(View *view);
 
