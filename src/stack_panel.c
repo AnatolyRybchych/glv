@@ -101,6 +101,8 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
         break;
     case VM_STACK_PANEL_SET_STRETCH:
         set_stretch(view, in);
+        stretch_childs(view);
+        locate_childs(view);
         break;
     case VM_CHILD_DELETE:
     case VM_CHILD_RESIZE:
