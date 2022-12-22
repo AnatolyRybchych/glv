@@ -193,10 +193,22 @@ bool glv_is_child_of(View *view, View *child){
     return is_child;
 }
 
-Uint32 glv_childs_cnt(View *view){
+Uint32 glv_get_childs_cnt(View *view){
     SDL_assert(view != NULL);
 
     return view->childs_cnt;
+}
+
+View *glv_get_child(View *view, Uint32 index){
+    SDL_assert(view != NULL);
+
+    if(view->childs_cnt < index){
+        return view->childs[index];
+    }
+    else{
+        glv_log_err(glv_get_mgr(view), "glv_child(): index is out of range");
+        return NULL;
+    }
 }
 
 void glv_delete(View *view){

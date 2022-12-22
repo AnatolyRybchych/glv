@@ -168,7 +168,7 @@ static void stretch_childs(View *stack_panel){
     Data *data = glv_get_view_data(stack_panel, data_offset);
 
     SDL_Point panel_size = glv_get_size(stack_panel);
-    Uint32 panel_childs_cnt = glv_childs_cnt(stack_panel);
+    Uint32 panel_childs_cnt = glv_get_childs_cnt(stack_panel);
 
     if(data->stretch[0]){
         Uint32 childs_width;
