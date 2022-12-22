@@ -225,6 +225,8 @@ void glv_delete(View *view){
     glv_enum_childs(view, __enum_delete_childs, NULL);
     glv_push_event(view, VM_DELETE, NULL, 0);
 
+    __unmap_child(view);
+
     glv_push_event(view, VM_VIEW_FREE__, NULL, 0);
 }
 
@@ -1054,7 +1056,6 @@ static bool handle_private_message(View *view, ViewMsg message, const void *in){
     in = in;//unused
     switch (message){
     case VM_VIEW_FREE__:
-        __unmap_child(view);
         free(view->view_data);
         free(view);
         return true;
