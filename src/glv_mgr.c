@@ -327,9 +327,9 @@ void glv_draw_texture_st(GlvMgr *mgr, GLuint texture, float scale[3], float tran
 
     float mvp[4*4];
     mvp_identity(mvp);
-    mvp_translate(mvp, translate);
     mvp_rotate_x(mvp, angle);
     mvp_scale(mvp, scale);
+    mvp_translate(mvp, translate);
 
     glv_draw_texture_mat(mgr, texture, mvp);
 }
@@ -360,8 +360,8 @@ void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src,
     scale[1] = dst->h / (float)vp.h;
     scale[2] = 0;
 
-    mvp_translate(mvp, translation); 
     mvp_scale(mvp, scale);
+    mvp_translate(mvp, translation); 
 
     translation[1] = - dst->h / (float)src->h;
     translation[0] = translation[2] = 0;
@@ -371,8 +371,8 @@ void glv_draw_texture_absolute(GlvMgr *mgr, GLuint texture, const SDL_Rect *src,
     scale[1] = dst->h / (float)src->h;
     scale[2] = 1;
 
-    mvp_translate(tex_mvp, translation); 
     mvp_scale(tex_mvp, scale);
+    mvp_translate(tex_mvp, translation); 
 
     glv_draw_texture_mat2(mgr, texture, mvp, tex_mvp);
 }
@@ -457,26 +457,16 @@ void glv_draw_line_rel(GlvMgr *mgr, float a[2], float b[2], float color_a[4], fl
     float mat[4*4];
     mvp_identity(mat);
 
-    float angle = atan2f(b[0] - a[0], b[1] - a[1]) + M_PI;
+    float center[2];
+    vec2_lerp(center, a, b, 0.5);
+    
+    float angle = atan2f(b[1] - a[1], b[0] - a[0]) + M_PI;
+    float scale[3] = {vec2_dst(a, b) * 0.5, thickness, 1};
+    float translation[3] = {center[0], center[1], 0.0};
+
     mvp_rotate_z(mat, angle);
-
-    float scale[3] = {1, thickness, 1};
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-
-    float ratio;
-    if(vp[2] > vp[3]){
-        ratio = vp[2] / (float)vp[3];
-    }
-    else{
-        ratio = vp[3] / (float)vp[2];
-    }
-
-    scale[1] *=  ratio;
-
-
     mvp_scale(mat, scale);
+    mvp_translate(mat, translation);
 
     float colors[12 * 4] = {
         color_b[0], color_b[1], color_b[2], color_b[3],

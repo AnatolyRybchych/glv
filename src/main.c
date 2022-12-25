@@ -25,8 +25,8 @@ void manage_canvas(View *view, ViewMsg msg, void *args, void *root_context){
         mvp_scale(mat, (float[3]){1.0, 0.01, 1.0});
 
         glv_draw_line_rel(mgr, 
-            (float[2]){-0.5, -0.5}, 
-            (float[2]){0.5, 0.5}, 
+            (float[2]){0, 0}, 
+            (float[2]){0.1, 0.5}, 
             (float[4]){1.0, 0.0, 0.0, 1.0},
             (float[4]){1.0, 1.0, 0.0, 1.0},
             0.005, 2);

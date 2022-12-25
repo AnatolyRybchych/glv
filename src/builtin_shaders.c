@@ -14,8 +14,8 @@ const char *draw_texture_vert =
 "varying vec2 tex_uv;\n"
 "\n"
 "void main(){\n"
-"    tex_uv = (vec4(tex_coords, 1, 1) * tex_mvp).xy;\n"
-"    gl_Position = vertex_p * mvp;\n"
+"    tex_uv = (tex_mvp * vec4(tex_coords, 1, 1)).xy;\n"
+"    gl_Position = mvp * vertex_p;\n"
 "}\n";
 
 const char *draw_texture_frag =
@@ -119,7 +119,7 @@ const char *draw_line_vert =
 "void main(){\n"
 "    color = vertex_color;\n"
 "    frag_coord = vertex_p.xy;\n"
-"    gl_Position = vertex_p * mvp;\n"
+"    gl_Position = mvp * vertex_p;\n"
 "}\n"
 "";
 
