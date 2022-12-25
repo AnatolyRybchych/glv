@@ -454,6 +454,12 @@ void glv_draw_line_mat(GlvMgr *mgr, const float colors[12*4], const float mat[4*
 }
 
 void glv_draw_line_rel(GlvMgr *mgr, float a[2], float b[2], float color_a[4], float color_b[4], float thickness, float sharpness){
+    SDL_assert(mgr != NULL);
+    SDL_assert(color_a != NULL);
+    SDL_assert(color_b != NULL);
+    SDL_assert(a != NULL);
+    SDL_assert(b != NULL);
+
     float mat[4*4];
     mvp_identity(mat);
 
@@ -479,6 +485,40 @@ void glv_draw_line_rel(GlvMgr *mgr, float a[2], float b[2], float color_a[4], fl
     };
 
     glv_draw_line_mat(mgr, colors, mat, sharpness);
+}
+
+void glv_draw_line_abs(GlvMgr *mgr, int a_px[2], int b_px[2], float color_a[4], float color_b[4], float thickness_px, float sharpness){
+    SDL_assert(mgr != NULL);
+    SDL_assert(color_a != NULL);
+    SDL_assert(color_b != NULL);
+    SDL_assert(a_px != NULL);
+    SDL_assert(b_px != NULL);
+
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+
+    int vp_max = SDL_max(vp[2], vp[3]);
+    glViewport(vp[0], vp[1] - vp_max + vp[3], vp_max, vp_max);
+
+
+
+    glv_draw_line_rel(
+        mgr, 
+        (float[2]){
+            2 * a_px[0] / (float)(vp_max) - 1.0, 
+            1.0 - 2 * a_px[1] / (float)(vp_max)
+        },
+        (float[2]){
+            2 * b_px[0] / (float)(vp_max) - 1.0, 
+            1.0 - 2 * b_px[1] / (float)(vp_max)
+        },
+        color_a, 
+        color_b,
+        thickness_px / (float)vp_max, 
+        thickness_px * sharpness / 2.0F
+    );
+
+    glViewport(vp[0], vp[1], vp[2], vp[3]);
 }
 
 void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground){

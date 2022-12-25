@@ -24,12 +24,12 @@ void manage_canvas(View *view, ViewMsg msg, void *args, void *root_context){
         mvp_rotate_z(mat, 1.0);
         mvp_scale(mat, (float[3]){1.0, 0.01, 1.0});
 
-        glv_draw_line_rel(mgr, 
-            (float[2]){0, 0}, 
-            (float[2]){0.1, 0.5}, 
+        glv_draw_line_abs(mgr, 
+            (int[2]){100, 100}, 
+            (int[2]){200, 500}, 
             (float[4]){1.0, 0.0, 0.0, 1.0},
             (float[4]){1.0, 1.0, 0.0, 1.0},
-            0.005, 2);
+            10, 0.5);
     }break;
     }
 }

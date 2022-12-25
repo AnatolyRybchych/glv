@@ -103,6 +103,10 @@ GlvMgr *glv_get_mgr(View *view);
 
     void glv_draw_line_rel(GlvMgr *mgr, float a[2], float b[2], float color_a[4], float color_b[4], float thickness, float sharpness);
 
+    //if sharpness >= 1: sharp line
+    //if sharpness 0.5: common smooth line 
+    void glv_draw_line_abs(GlvMgr *mgr, int a_px[2], int b_px[2], float color_a[4], float color_b[4], float thickness_px, float sharpness);
+
     void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground);
     Uint32 glv_calc_text_width(FT_Face face, const wchar_t *text);
     Uint32 glv_calc_text_width_n(FT_Face face, const wchar_t *text, Uint32 text_len);
