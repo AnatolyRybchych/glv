@@ -61,8 +61,8 @@ void init_spa(View *view, void *root_context){
     glv_set_font_height(text_input, 48);
     glv_set_size(text_input, 200, 48);
 
-    View *canvas = glv_create_weak(mgr, glv_canvas_proc, manage_canvas, NULL);
-    canvas = canvas;
+    // View *canvas = glv_create_weak(mgr, glv_canvas_proc, manage_canvas, NULL);
+    // canvas = canvas;
 }
 
 int main(void){
