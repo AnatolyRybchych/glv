@@ -24,20 +24,12 @@ void manage_canvas(View *view, ViewMsg msg, void *args, void *root_context){
         mvp_rotate_z(mat, 1.0);
         mvp_scale(mat, (float[3]){1.0, 0.01, 1.0});
 
-        SDL_Point size = glv_get_size(view);
-        glViewport(0, 0, size.x, size.y);
-
-        float colors[12 * 4] = {
-            1, 0, 0 , 1,
-            1, 0, 0 , 1,
-            1, 0, 0 , 1,
-
-            1, 0, 0 , 1,
-            1, 0, 0 , 1,
-            1, 0, 0 , 1,
-            };
-
-        glv_draw_line_mat(mgr, colors, mat, 2.0);
+        glv_draw_line_rel(mgr, 
+            (float[2]){-0.5, -0.5}, 
+            (float[2]){0.5, 0.5}, 
+            (float[4]){1.0, 0.0, 0.0, 1.0},
+            (float[4]){1.0, 1.0, 0.0, 1.0},
+            0.005, 2);
     }break;
     }
 }

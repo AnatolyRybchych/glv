@@ -453,6 +453,44 @@ void glv_draw_line_mat(GlvMgr *mgr, const float colors[12*4], const float mat[4*
     glUseProgram(0);
 }
 
+void glv_draw_line_rel(GlvMgr *mgr, float a[2], float b[2], float color_a[4], float color_b[4], float thickness, float sharpness){
+    float mat[4*4];
+    mvp_identity(mat);
+
+    float angle = atan2f(b[0] - a[0], b[1] - a[1]) + M_PI;
+    mvp_rotate_z(mat, angle);
+
+    float scale[3] = {1, thickness, 1};
+
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+
+    float ratio;
+    if(vp[2] > vp[3]){
+        ratio = vp[2] / (float)vp[3];
+    }
+    else{
+        ratio = vp[3] / (float)vp[2];
+    }
+
+    scale[1] *=  ratio;
+
+
+    mvp_scale(mat, scale);
+
+    float colors[12 * 4] = {
+        color_b[0], color_b[1], color_b[2], color_b[3],
+        color_a[0], color_a[1], color_a[2], color_a[3],
+        color_b[0], color_b[1], color_b[2], color_b[3],
+
+        color_a[0], color_a[1], color_a[2], color_a[3],
+        color_a[0], color_a[1], color_a[2], color_a[3],
+        color_b[0], color_b[1], color_b[2], color_b[3],
+    };
+
+    glv_draw_line_mat(mgr, colors, mat, sharpness);
+}
+
 void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground){
     SDL_assert(mgr != NULL);
     SDL_assert(text != NULL);

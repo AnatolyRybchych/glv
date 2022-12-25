@@ -101,6 +101,9 @@ GlvMgr *glv_get_mgr(View *view);
     //    if neaded to make common smooth line, sharpness should be equals half of line thickness, to make common sharp line: sharpness should be equals to line thickness or more
     void glv_draw_line_mat(GlvMgr *mgr, const float colors[12 * 4], const float mat[4*4], float sharpness);
 
+    //colors is array of colors for each vertex in line quadrange
+    void glv_draw_line_rel(GlvMgr *mgr, float a[2], float b[2], float color_a[4], float color_b[4], float thickness, float sharpness);
+
     void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground);
     Uint32 glv_calc_text_width(FT_Face face, const wchar_t *text);
     Uint32 glv_calc_text_width_n(FT_Face face, const wchar_t *text, Uint32 text_len);
