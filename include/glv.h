@@ -341,6 +341,16 @@ void glv_set_background(View *view, GLuint texture);
 //doesnt makes view drawable, view should manage this manually
 void glv_set_foreground(View *view, GLuint texture);
 
+//set view backgound unsing texture, view take ownership over texture
+//doesnt makes view drawable, view should manage this manually
+//returns texture, that should be disposed by glDeleteTextures();
+GLuint glv_swap_background(View *view, GLuint texture);
+
+//set view foreground unsing texture, view take ownership over texture
+//doesnt makes view drawable, view should manage this manually
+//returns texture, that should be disposed by glDeleteTextures();
+GLuint glv_swap_foreground(View *view, GLuint texture);
+
 //set view font
 //doesnt makes view drawable, view should manage this manually
 void glv_set_font(View *view, GlvFontFaceId font_face);

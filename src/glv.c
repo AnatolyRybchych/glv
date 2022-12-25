@@ -775,22 +775,36 @@ void glv_swap_texture_with_bg(View *view){
 }
 
 void glv_set_background(View *view, GLuint texture){
-    SDL_assert(view != NULL);
-
-    glDeleteTextures(1, &view->bg_tex);
-    view->bg_tex = texture;
-
-    glv_push_event(view, VM_SET_BG, &texture, sizeof(texture));
+    GLuint prev = glv_swap_background(view, texture);
+    glDeleteTextures(1, &prev);
 }
 
 
 void glv_set_foreground(View *view, GLuint texture){
+    GLuint prev = glv_swap_foreground(view, texture);
+    glDeleteTextures(1, &prev);
+}
+
+GLuint glv_swap_background(View *view, GLuint texture){
     SDL_assert(view != NULL);
 
-    glDeleteTextures(1, &view->fg_tex);
+    GLuint ret = view->bg_tex;
+    view->bg_tex = texture;
+
+    glv_push_event(view, VM_SET_BG, &view->bg_tex, sizeof(view->bg_tex));
+
+    return ret;
+}
+
+GLuint glv_swap_foreground(View *view, GLuint texture){
+    SDL_assert(view != NULL);
+    
+    GLuint ret = view->fg_tex;
     view->fg_tex = texture;
 
-    glv_push_event(view, VM_SET_FG, &texture, sizeof(texture));
+    glv_push_event(view, VM_SET_FG, &view->fg_tex, sizeof(view->fg_tex));
+
+    return ret;
 }
 
 GLuint glv_get_bg_texture(View *view){
