@@ -11,6 +11,7 @@ typedef struct GlvSdlEvent GlvSdlEvent;
 typedef struct DrawTextureProgram DrawTextureProgram;
 typedef struct DrawCircleProgram DrawCircleProgram;
 typedef struct DrawTriangleProgram DrawTriangleProgram;
+typedef struct DrawLineProgram DrawLineProgram;
 typedef struct DrawTextProgram DrawTextProgram;
 typedef struct PopupViewsQueue PopupViewsQueue;
 typedef struct PopupViewContainer PopupViewContainer;
@@ -27,6 +28,9 @@ void free_draw_circle(DrawCircleProgram *prog);
 
 DrawTriangleProgram init_draw_triangle(GlvMgr *mgr);
 void free_draw_triangle(DrawTriangleProgram *prog);
+
+DrawLineProgram init_draw_line(GlvMgr *mgr);
+void free_draw_line(DrawLineProgram *prog);
 
 DrawTextProgram init_draw_text(GlvMgr *mgr);
 void free_draw_text(DrawTextProgram *prog);
@@ -85,6 +89,16 @@ struct DrawTriangleProgram{
     GLuint vertex_color_pos;
 };
 
+struct DrawLineProgram{
+    GLuint program;
+    GLuint vbo;
+
+    GLuint vbo_pos;
+    GLuint vertex_color_pos;
+    GLuint mvp_pos;
+    GLuint half_px_height_pos;
+};
+
 struct DrawTextProgram{
     GLuint glyph_texture;
 
@@ -140,6 +154,7 @@ struct GlvMgr{
     DrawTextureProgram draw_texture_program;
     DrawCircleProgram draw_circle_program;
     DrawTriangleProgram draw_triangle_program;
+    DrawLineProgram draw_line_program;
     DrawTextProgram draw_text_program;
 };
 

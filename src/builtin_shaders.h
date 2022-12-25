@@ -15,5 +15,7 @@ extern const char *draw_circle_frag;
 extern const char *draw_triangle_vert;
 extern const char *draw_triangle_frag;
 
+extern const char *draw_line_vert;
+extern const char *draw_line_frag;
 
 #endif //BUILTIN_SHADERS_H

@@ -105,3 +105,33 @@ const char *draw_triangle_frag =
 "    gl_FragColor = color;\n"
 "}\n"
 "";
+
+const char *draw_line_vert =
+"#version 110\n"
+"\n"
+"attribute vec4 vertex_p;\n"
+"attribute vec4 vertex_color;\n"
+"uniform mat4 mvp;\n"
+"\n"
+"varying vec2 frag_coord;\n"
+"varying vec4 color;\n"
+"\n"
+"void main(){\n"
+"    color = vertex_color;\n"
+"    frag_coord = vertex_p.xy;\n"
+"    gl_Position = vertex_p * mvp;\n"
+"}\n"
+"";
+
+const char *draw_line_frag =
+"#version 110\n"
+"\n"
+"varying vec4 color;\n"
+"varying vec2 frag_coord;\n"
+"uniform float half_px_height;\n"
+"\n"
+"void main(){\n"
+"    float line_mask = clamp((1.0 - abs(frag_coord.y)) * half_px_height, 0.0, 1.0);\n"
+"    gl_FragColor = vec4(color.rgb, color.a * line_mask);\n"
+"}\n"
+"";

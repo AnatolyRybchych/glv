@@ -18,7 +18,26 @@ void manage_canvas(View *view, ViewMsg msg, void *args, void *root_context){
     case VM_DRAW:{
         GlvMgr *mgr = glv_get_mgr(view);
 
-        mgr = mgr;
+        float mat[16];
+        mvp_identity(mat);
+
+        mvp_rotate_z(mat, 1.0);
+        mvp_scale(mat, (float[3]){1.0, 0.01, 1.0});
+
+        SDL_Point size = glv_get_size(view);
+        glViewport(0, 0, size.x, size.y);
+
+        float colors[12 * 4] = {
+            1, 0, 0 , 1,
+            1, 0, 0 , 1,
+            1, 0, 0 , 1,
+
+            1, 0, 0 , 1,
+            1, 0, 0 , 1,
+            1, 0, 0 , 1,
+            };
+
+        glv_draw_line_mat(mgr, colors, mat, 2.0);
     }break;
     }
 }
@@ -50,8 +69,8 @@ void init_spa(View *view, void *root_context){
     glv_set_font_height(text_input, 48);
     glv_set_size(text_input, 200, 48);
 
-    // View *canvas = glv_create_weak(mgr, glv_canvas_proc, manage_canvas, NULL);
-    // canvas = canvas;
+    View *canvas = glv_create_weak(mgr, glv_canvas_proc, manage_canvas, NULL);
+    canvas = canvas;
 }
 
 int main(void){

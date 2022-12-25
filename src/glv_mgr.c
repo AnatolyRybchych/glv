@@ -55,6 +55,27 @@ void free_draw_triangle(DrawTriangleProgram *prog){
     glDeleteProgram(prog->program);
 }
 
+DrawLineProgram init_draw_line(GlvMgr *mgr){
+    DrawLineProgram result;
+
+    glv_build_program_or_quit_err(
+        mgr, draw_line_vert, draw_line_frag, &result.program);
+    result.vbo = init_normal_vbo();
+    
+    result.vbo_pos = glGetAttribLocation(result.program, "vertex_p");
+    result.vertex_color_pos = glGetAttribLocation(result.program, "vertex_color");
+
+    result.mvp_pos = glGetUniformLocation(result.program, "mvp");
+    result.half_px_height_pos = glGetUniformLocation(result.program, "half_px_height");
+
+    return result;
+}
+
+void free_draw_line(DrawLineProgram *prog){
+    glDeleteProgram(prog->program);
+    glDeleteBuffers(1, &prog->vbo);
+}
+
 DrawCircleProgram init_draw_circle(GlvMgr *mgr){
 
     DrawCircleProgram result;
@@ -404,6 +425,31 @@ void glv_draw_triangles_rel(GlvMgr *mgr, Uint32 vertices_cnt, float *vertices, U
 
     glDisableVertexAttribArray(mgr->draw_triangle_program.vbo_pos);
     glDisableVertexAttribArray(mgr->draw_triangle_program.vertex_color_pos);
+    glUseProgram(0);
+}
+
+void glv_draw_line_mat(GlvMgr *mgr, const float colors[12*4], const float mat[4*4], float sharpness){
+    SDL_assert(mgr != NULL);
+    SDL_assert(colors != NULL);
+    SDL_assert(mat != NULL);
+
+    glUseProgram(mgr->draw_line_program.program);
+    glEnableVertexAttribArray(mgr->draw_line_program.vbo_pos);
+    glEnableVertexAttribArray(mgr->draw_line_program.vertex_color_pos);
+
+    glVertexAttribPointer(mgr->draw_line_program.vertex_color_pos, 4, GL_FLOAT, GL_FALSE, 0, colors);
+
+    glBindBuffer(GL_ARRAY_BUFFER, mgr->draw_line_program.vbo);
+    glVertexAttribPointer(mgr->draw_line_program.vbo_pos, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glUniformMatrix4fv(mgr->draw_line_program.mvp_pos, 1, GL_FALSE, mat);
+    glUniform1f(mgr->draw_line_program.half_px_height_pos, sharpness);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDisableVertexAttribArray(mgr->draw_line_program.vbo_pos);
+    glDisableVertexAttribArray(mgr->draw_line_program.vertex_color_pos);
     glUseProgram(0);
 }
 
