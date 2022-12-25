@@ -499,9 +499,6 @@ void glv_draw_line_abs(GlvMgr *mgr, int a_px[2], int b_px[2], float color_a[4], 
 
     int vp_max = SDL_max(vp[2], vp[3]);
     glViewport(vp[0], vp[1] - vp_max + vp[3], vp_max, vp_max);
-
-
-
     glv_draw_line_rel(
         mgr, 
         (float[2]){
