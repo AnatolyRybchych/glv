@@ -93,17 +93,6 @@ GlvMgr *glv_get_mgr(View *view);
 
     void glv_draw_triangles_rel(GlvMgr *mgr, Uint32 vertices_cnt, float *vertices, Uint32 per_vertex, float *colors, Uint32 per_color);
 
-    //draw smooth triangle, two side by side triangles will drawed with delimiter, use glv_draw_polygon_sector_rel
-    void glv_draw_triangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float color[3]);
-    void glv_draw_triangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float color_p1[3], float color_p2[3], float color_p3[3]);
-
-    //to draw polygons with closed triangles sides (only border_p1 border_p2 line has smooth)
-    void glv_draw_polygon_sector_rel(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3]);
-    void glv_draw_polygon_sector_rel_polycolor(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3]);
-    
-    void glv_draw_quadrangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color[3]);
-    void glv_draw_quadrangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color_p1[3], float color_p2[3], float color_p3[3], float color_p4[3]);
-
     void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground);
     Uint32 glv_calc_text_width(FT_Face face, const wchar_t *text);
     Uint32 glv_calc_text_width_n(FT_Face face, const wchar_t *text, Uint32 text_len);

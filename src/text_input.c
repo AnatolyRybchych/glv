@@ -516,22 +516,27 @@ static void draw_carete(View *view){
     coords_rel_sz(carete_lt, carete_lt_px, _size);
     coords_rel_sz(carete_rb, carete_rb_px, _size);
 
-    glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    float vertices[] = {
+        carete_lt[0], carete_lt[1],
+        carete_rb[0], carete_lt[1],
+        carete_rb[0], carete_rb[1],
 
-    glv_draw_quadrangle_rel(mgr, 
-        carete_lt,
-        carete_rb,
-        (float[2]){carete_lt[0], carete_rb[1]},
-        (float[2]){carete_rb[0], carete_lt[1]},
-        
-        data->carete_color
-    );
+        carete_lt[0], carete_lt[1],
+        carete_lt[0], carete_rb[1],
+        carete_rb[0], carete_rb[1],
+    };
 
-    glBlendFuncSeparate(
-        GLV_DEFAULT_BLEND_FACTOR_SRC_COLOR, 
-        GLV_DEFAULT_BLEND_FACTOR_DST_COLOR, 
-        GLV_DEFAULT_BLEND_FACTOR_SRC_ALPHA, 
-        GLV_DEFAULT_BLEND_FACTOR_DST_ALPHA);
+    float colors[] = {
+        data->carete_color[0], data->carete_color[1], data->carete_color[2],
+        data->carete_color[0], data->carete_color[1], data->carete_color[2],
+        data->carete_color[0], data->carete_color[1], data->carete_color[2],
+
+        data->carete_color[0], data->carete_color[1], data->carete_color[2],
+        data->carete_color[0], data->carete_color[1], data->carete_color[2],
+        data->carete_color[0], data->carete_color[1], data->carete_color[2],
+    };
+
+    glv_draw_triangles_rel(mgr, 6, vertices, 2, colors, 3);
 }
 
 static void draw_selection(View *view){
@@ -559,14 +564,27 @@ static void draw_selection(View *view){
     coords_rel_sz(selection_lt, selection_lt_px, _size);
     coords_rel_sz(selection_rb, selection_rb_px, _size);
 
-    glv_draw_quadrangle_rel(mgr, 
-        selection_lt,
-        selection_rb,
-        (float[2]){selection_lt[0], selection_rb[1]},
-        (float[2]){selection_rb[0], selection_lt[1]},
-        
-        data->selection_color
-    );
+    float vertices[] = {
+        selection_lt[0], selection_lt[1],
+        selection_rb[0], selection_lt[1],
+        selection_rb[0], selection_rb[1],
+
+        selection_lt[0], selection_lt[1],
+        selection_lt[0], selection_rb[1],
+        selection_rb[0], selection_rb[1],
+    };
+
+    float colors[] = {
+        data->selection_color[0], data->selection_color[1], data->selection_color[2],
+        data->selection_color[0], data->selection_color[1], data->selection_color[2],
+        data->selection_color[0], data->selection_color[1], data->selection_color[2],
+
+        data->selection_color[0], data->selection_color[1], data->selection_color[2],
+        data->selection_color[0], data->selection_color[1], data->selection_color[2],
+        data->selection_color[0], data->selection_color[1], data->selection_color[2],
+    };
+
+    glv_draw_triangles_rel(mgr, 6, vertices, 2, colors, 3);
 }
 
 static Uint32 calc_text_width(View *view, const wchar_t *text, Uint32 text_len){

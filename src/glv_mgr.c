@@ -5,14 +5,8 @@
 static GLuint init_normal_vbo(void);
 static GLuint init_normal_uv_bo(void);
 
-static void glv_draw_polygon_sector_rel_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3], GLint viewport[4]);
-static void glv_draw_polygon_sector_rel_polycolor_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3], GLint viewport[4]);
-
 static void __init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const int pos[2], GLint viewport[4]);
 static void __init_glyph_text_coords(float text_coords[12], const float vbo[12]);
-
-static int __cmp_by_x_axis(const void *first, const void *second);
-static int __cmp_by_y_axis(const void *first, const void *second);
 
 DrawTextProgram init_draw_text(GlvMgr *mgr){
     DrawTextProgram result;
@@ -413,166 +407,6 @@ void glv_draw_triangles_rel(GlvMgr *mgr, Uint32 vertices_cnt, float *vertices, U
     glUseProgram(0);
 }
 
-void glv_draw_triangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float color[3]){
-    float center[2];
-
-    vec2_lerp(center, p1, p2, 0.5);
-    vec2_eq_lerp(center, p3, 0.5);
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-
-    glv_draw_polygon_sector_rel_(mgr, center, p1, p2, color, vp);
-    glv_draw_polygon_sector_rel_(mgr, center, p1, p3, color, vp);
-    glv_draw_polygon_sector_rel_(mgr, center, p2, p3, color, vp);
-}
-
-void glv_draw_triangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float color_p1[3], float color_p2[3], float color_p3[3]){
-    SDL_assert(mgr != NULL);
-    SDL_assert(p1 != NULL);
-    SDL_assert(p2 != NULL);
-    SDL_assert(p3 != NULL);
-    SDL_assert(color_p1 != NULL);
-    SDL_assert(color_p2 != NULL);
-    SDL_assert(color_p3 != NULL);
-
-    float center[2];
-
-    vec2_lerp(center, p1, p2, 0.5);
-    vec2_eq_lerp(center, p3, 0.5);
-
-    float center_color[3];
-
-    vec3_lerp(center_color, color_p1, color_p2, 0.5);
-    vec3_eq_lerp(center_color, color_p3, 0.5);
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-
-    glv_draw_polygon_sector_rel_polycolor_(mgr, center, p1, p2, center_color, color_p1, color_p2, vp);
-    glv_draw_polygon_sector_rel_polycolor_(mgr, center, p1, p3, center_color, color_p1, color_p3, vp);
-    glv_draw_polygon_sector_rel_polycolor_(mgr, center, p2, p3, center_color, color_p2, color_p3, vp);
-}
-
-static void glv_draw_polygon_sector_rel_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3], GLint viewport[4]){
-    glv_draw_polygon_sector_rel_polycolor_(mgr, solid_p, border_p1, border_p2, color, color, color, viewport);
-}
-
-static void glv_draw_polygon_sector_rel_polycolor_(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3], GLint viewport[4]){
-    SDL_assert(mgr != NULL);
-    SDL_assert(solid_p != NULL);
-    SDL_assert(border_p1 != NULL);
-    SDL_assert(border_p2 != NULL);
-    SDL_assert(color_sp != NULL);
-    SDL_assert(color_p1 != NULL);
-    SDL_assert(color_p2 != NULL);
-    SDL_assert(viewport != NULL);
-
-    float vertices[] = {
-        solid_p[0], solid_p[1],
-        border_p1[0], border_p1[1],
-        border_p2[0], border_p2[1],
-    };
-
-    float p1_px[2] = {viewport[2] *border_p1[0], viewport[3] *border_p1[1],};
-    float p2_px[2] = {viewport[2] *border_p2[0], viewport[3] *border_p2[1],};
-    float solid_px[2] = {viewport[2] *solid_p[0], viewport[3] *solid_p[1],};
-
-    float colors[] = {
-        color_sp[0], color_sp[1], color_sp[2], line_point_dst(p1_px, p2_px, solid_px) / 2.0f,
-        color_p1[0], color_p1[1], color_p1[2], 0,
-        color_p2[0], color_p2[1], color_p2[2], 0
-    };
-    
-    glv_draw_triangles_rel(mgr, 3, vertices, 2, colors, 4);
-}
-
-void glv_draw_polygon_sector_rel(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color[3]){
-    SDL_assert(mgr != NULL);
-    SDL_assert(solid_p != NULL);
-    SDL_assert(border_p1 != NULL);
-    SDL_assert(border_p2 != NULL);
-    SDL_assert(color != NULL);
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-
-    glv_draw_polygon_sector_rel_(mgr, solid_p, border_p1, border_p2, color, vp);
-}
-
-void glv_draw_polygon_sector_rel_polycolor(GlvMgr *mgr, float solid_p[2], float border_p1[2], float border_p2[2], float color_sp[3], float color_p1[3], float color_p2[3]){
-    SDL_assert(mgr != NULL);
-    SDL_assert(solid_p != NULL);
-    SDL_assert(border_p1 != NULL);
-    SDL_assert(border_p2 != NULL);
-    SDL_assert(color_sp != NULL);
-    SDL_assert(color_p1 != NULL);
-    SDL_assert(color_p2 != NULL);
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-
-    glv_draw_polygon_sector_rel_polycolor_(mgr, solid_p, border_p1, border_p2, color_sp, color_p1, color_p2, vp);
-}
-    
-void glv_draw_quadrangle_rel(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color[3]){
-    SDL_assert(mgr != NULL);
-    SDL_assert(p1 != NULL);
-    SDL_assert(p2 != NULL);
-    SDL_assert(p3 != NULL);
-    SDL_assert(p4 != NULL);
-    SDL_assert(color != NULL);
-
-    float *v[] = {p1, p2, p3, p4};
-    qsort(v, 4, sizeof(float*), __cmp_by_x_axis); //[0,1] are left sides, [2, 3] are right
-    qsort(v + 0, 2, sizeof(float*), __cmp_by_y_axis);//[1] are left top, [0] are left bottom
-    qsort(v + 2, 2, sizeof(float*), __cmp_by_y_axis);//[3] are right top, [2] are right bottom
-
-    float center[2];
-
-    vec2_lerp(center, v[0], v[3], 0.5);
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-
-    glv_draw_polygon_sector_rel(mgr, center, v[0], v[1], color);// triangle {center, left top, letf bottom}
-    glv_draw_polygon_sector_rel(mgr, center, v[2], v[3], color);// triangle {center, right top, right bottom}
-    glv_draw_polygon_sector_rel(mgr, center, v[1], v[3], color);// triangle {center, left top, right top}
-    glv_draw_polygon_sector_rel(mgr, center, v[0], v[2], color);// triangle {center, left bottom, right bottom}
-}
-
-void glv_draw_quadrangle_rel_polycolor(GlvMgr *mgr, float p1[2], float p2[2], float p3[2], float p4[2], float color_p1[3], float color_p2[3], float color_p3[3], float color_p4[3]){
-    SDL_assert(mgr != NULL);
-    SDL_assert(color_p1 != NULL);
-    SDL_assert(p1 != NULL);
-    SDL_assert(p2 != NULL);
-    SDL_assert(p3 != NULL);
-    SDL_assert(p4 != NULL);
-    SDL_assert(color_p1 != NULL);
-    SDL_assert(color_p2 != NULL);
-    SDL_assert(color_p3 != NULL);
-    SDL_assert(color_p4 != NULL);
-
-    float *v[] = {p1, color_p1, p2, color_p2, p3, color_p3, p4, color_p4};
-    qsort(v, 4, sizeof(float*) * 2, __cmp_by_x_axis); //[0,1] are left sides, [2, 3] are right
-    qsort(v + 0, 2, sizeof(float*) * 2, __cmp_by_y_axis);//[1] are left top, [0] are left bottom
-    qsort(v + 4, 2, sizeof(float*) * 2, __cmp_by_y_axis);//[3] are right top, [2] are right bottom
-
-    float center[2];
-    float center_color[3];
-
-    vec2_lerp(center, v[2], v[4], 0.5);
-    vec3_lerp(center_color, v[3], v[5], 0.5);
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-
-    glv_draw_polygon_sector_rel_polycolor_(mgr, center, v[0], v[2], center_color, v[1], v[3], vp);// triangle {center, left top, letf bottom}
-    glv_draw_polygon_sector_rel_polycolor_(mgr, center, v[4], v[6], center_color, v[5], v[7], vp);// triangle {center, right top, right bottom}
-    glv_draw_polygon_sector_rel_polycolor_(mgr, center, v[2], v[6], center_color, v[3], v[7], vp);// triangle {center, left top, right top}
-    glv_draw_polygon_sector_rel_polycolor_(mgr, center, v[0], v[4], center_color, v[1], v[5], vp);// triangle {center, left bottom, right bottom}
-}
-
 void glv_draw_text(GlvMgr *mgr, FT_Face face, const wchar_t *text, const int pos[2], GLuint foreground){
     SDL_assert(mgr != NULL);
     SDL_assert(text != NULL);
@@ -790,12 +624,4 @@ static void __init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const int 
     };
 
     memcpy(vbo, result, sizeof(result));
-}
-
-static int __cmp_by_x_axis(const void *first, const void *second){
-    return **(float**)first > **(float**)second ? 1 : -1;
-}
-
-static int __cmp_by_y_axis(const void *first, const void *second){
-    return (*(float**)first)[1] > (*(float**)second)[1] ? 1 : -1;
 }
