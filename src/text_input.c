@@ -621,11 +621,10 @@ static void paste_text(View *view, const wchar_t *text){
 static void backspace(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
-    if(data->carete == 0) return;
-
     if(data->selection[1]){
         erse_selected(view);
     }
+    else if(data->carete == 0) return;
     else{
         delete_rng(view, data->carete - 1, 1);
         instant_carete_pos(view, data->carete - 1);
