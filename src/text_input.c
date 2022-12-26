@@ -74,7 +74,8 @@ static void erse_selected(View *view);
 static void instant_carete_pos(View *text_input, Uint32 carete_pos);
 static void instant_selection(View *text_input, const Uint32 selection[2]);
 
-static bool is_white_space(char ch);
+static bool is_word_end(char ch);
+static bool is_in_str(const char *str, char ch);
 
 ViewProc glv_text_input_proc = proc; 
 static Uint32 data_offset;
@@ -746,7 +747,7 @@ static void ctrl_k_left(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
     k_left(view);
-    while (data->carete > 0 && !is_white_space(data->text[data->carete - 1])){
+    while (data->carete > 0 && !is_word_end(data->text[data->carete - 1])){
         k_left(view);
     }
 }
@@ -755,7 +756,7 @@ static void ctrl_k_right(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
     k_right(view);
-    while (data->carete < data->text_len && !is_white_space(data->text[data->carete])){
+    while (data->carete < data->text_len && !is_word_end(data->text[data->carete])){
         k_right(view);
     }
 }
@@ -881,11 +882,22 @@ static void instant_selection(View *text_input, const Uint32 selection[2]){
     glv_call_manage(text_input, VM_TEXT_INPUT_SET_SELECTION, (void*)selection);
 }
 
-static bool is_white_space(char ch){
-    return ch == ' '
-        || ch == '\t'
-        || ch == '\n'
-        || ch == '\r'
-        || ch == '\v'
-        || ch == '\f';
+static bool is_word_end(char ch){
+    return is_in_str(
+        "\t\n\r\v\f"
+        "(){}[]<>"
+        ".,:;!?"
+        "-+=*/"
+        "\"\'"
+        "@#$%^&", ch); 
+}
+
+static bool is_in_str(const char *str, char ch){
+    while (*str){
+        if(*str == ch){
+            return true;
+        }
+        str++;
+    }
+    return false;
 }
