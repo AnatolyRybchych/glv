@@ -1,6 +1,6 @@
 #include <glv/popup_panel.h>
 
-#define parent_proc(view, msg, in, out) glv_proc_default(view, msg, in, out)
+#define parent_proc(view, msg, in, out) glv_background_proc(view, msg, in, out)
 
 typedef struct Data{
     View *popup;
@@ -55,9 +55,6 @@ void glv_popup_panel_set_content(View *popup_panel, View *content){
 
 static void proc(View *view, ViewMsg msg, void *in, void *out){
     switch (msg){
-    case VM_SET_BG:
-        glv_swap_texture_with_bg(view);
-        break;
     case VM_RESIZE:
         on_resize(view);
         break;

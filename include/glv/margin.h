@@ -1,7 +1,7 @@
 #ifndef __GLV_MARGIN_H
 #define __GLV_MARGIN_H
 
-#include <glv.h>
+#include <glv/background.h>
 
 #define VM_MARGIN_SET_ABSOLUTE VM_USER_FIRST + 20
 #define VM_MARGIN_SET_RELATIVE VM_USER_FIRST + 21

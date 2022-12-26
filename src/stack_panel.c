@@ -1,6 +1,6 @@
 #include <glv/stack_panel.h>
 
-#define parent_proc(view, msg, in, out) glv_proc_default(view, msg, in, out)
+#define parent_proc(view, msg, in, out) glv_background_proc(view, msg, in, out)
 
 typedef struct Data{
     bool vertical;
@@ -33,7 +33,6 @@ static bool set_horisontal(View *stack_panel);
 static void set_alignment(View *stack_panel, const SDL_Point *alignment);
 static void set_stretch(View *stack_panel, const bool stretch[2]);
 static void write_docs(View *stack_panel, ViewMsg msg, GlvMsgDocs *docs);
-static bool set_bg(View *view, const GLuint *stack_panel);
 
 ViewProc glv_stack_panel_proc = proc;
 
@@ -76,9 +75,6 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
     view = view;
 
     switch (msg){
-    case VM_SET_BG:
-        if(set_bg(view, in)) glv_draw(view);
-        break;
     case VM_GET_VIEW_DATA_SIZE:
         init_data_size(view, out); 
         break;
@@ -321,16 +317,5 @@ static void write_docs(View *stack_panel, ViewMsg msg, GlvMsgDocs *docs){
         break;
     default:
         parent_proc(stack_panel, VM_GET_DOCS, &msg, docs);
-    }
-}
-
-static bool set_bg(View *stack_panel, const GLuint *texture){
-    if(*texture == 0){
-        glv_deny_draw(stack_panel);
-        return false;
-    }
-    else{
-        glv_swap_texture_with_bg(stack_panel);
-        return true;
     }
 }

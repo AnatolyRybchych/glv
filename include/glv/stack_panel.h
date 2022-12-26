@@ -1,7 +1,7 @@
 #ifndef __GLV_STACK_PANEL_H
 #define __GLV_STACK_PANEL_H
 
-#include <glv.h>
+#include <glv/background.h>
 
 #define VM_STACK_PANEL_SET_VERTICAL VM_USER_FIRST + 10
 #define VM_STACK_PANEL_SET_HORISONTAL VM_USER_FIRST + 11

@@ -1,7 +1,7 @@
 #ifndef __GLV_POPUP_PANEL_H
 #define __GLV_POPUP_PANEL_H
 
-#include <glv.h>
+#include <glv/background.h>
 
 #define VM_POPUP_PANEL_SHOW_POPUP VM_USER_FIRST + 40
 #define VM_POPUP_PANEL_HIDE_POPUP VM_USER_FIRST + 41

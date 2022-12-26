@@ -1,6 +1,6 @@
 #include <glv/margin.h>
 
-#define parent_proc(view, msg, in, out) glv_proc_default(view, msg, in, out)
+#define parent_proc(view, msg, in, out) glv_background_proc(view, msg, in, out)
 
 typedef struct Data{
     int abs[4]; 
@@ -72,9 +72,6 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
         if(((GlvChildChanged*)in)->sender != view){
             align(view);
         }
-        break;
-    case VM_SET_BG:
-        glv_swap_texture_with_bg(view);
         break;
     case VM_RESIZE:
         align(view);

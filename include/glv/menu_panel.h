@@ -1,7 +1,7 @@
 #ifndef __GLV_MENU_PANEL_H
 #define __GLV_MENU_PANEL_H
 
-#include <glv.h>
+#include <glv/background.h>
 
 #define VM_MENU_PANEL_SET_LEFT VM_USER_FIRST + 30
 #define VM_MENU_PANEL_SET_TOP VM_USER_FIRST + 31
