@@ -662,6 +662,10 @@ static void k_left(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
     if(data->carete == 0){
+        if(!SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LSHIFT]){
+            Uint32 selection[2] = {0, 0};
+            instant_selection(view, selection);
+        }
         return;
     }
 
@@ -669,7 +673,6 @@ static void k_left(View *view){
         Uint32 selection[2] = {data->selection[0], data->selection[1]};
 
         if(selection[1] == 0) selection[0] = data->carete;
-        
 
         if(selection[0] == data->carete){
             selection[0]--;
@@ -701,6 +704,10 @@ static void k_right(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
     if(data->carete + 1 > data->text_len){
+        if(!SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LSHIFT]){
+            Uint32 selection[2] = {0, 0};
+            instant_selection(view, selection);
+        }
         return;
     }
 
