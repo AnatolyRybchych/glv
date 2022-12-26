@@ -884,7 +884,7 @@ static void instant_selection(View *text_input, const Uint32 selection[2]){
 
 static bool is_word_end(char ch){
     return is_in_str(
-        "\t\n\r\v\f"
+        " \t\n\r\v\f"
         "(){}[]<>"
         ".,:;!?"
         "-+=*/"
