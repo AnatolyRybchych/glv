@@ -9,8 +9,6 @@
 
     TODO: mouse interraction (selection, moving carete)
 
-    TODO: go to neares whitespace on ctrl-left and ctrl-right
-
     TODO: drag & drop for text
 
     maybe
