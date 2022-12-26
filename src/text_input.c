@@ -59,6 +59,8 @@ static Uint32 calc_text_width(View *view, const wchar_t *text, Uint32 text_len);
 static void paste_text(View *view, const wchar_t *text);
 static void backspace(View *view);
 static void delete(View *view);
+static void ctrl_backspace(View *view);
+static void ctrl_delete(View *view);
 static void k_left(View *view);
 static void k_right(View *view);
 static void ctrl_k_left(View *view);
@@ -327,7 +329,12 @@ static void on_set_carete_pos(View  *view, const Uint32 *carete_pos){
 static void on_key_down(View  *view, const GlvKeyDown *key){
     switch (key->sym.scancode){
     case SDL_SCANCODE_BACKSPACE:
-        backspace(view);
+        if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
+            ctrl_backspace(view);
+        }
+        else{
+            backspace(view);
+        }
         break;
     case SDL_SCANCODE_LEFT:
         if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
@@ -346,7 +353,12 @@ static void on_key_down(View  *view, const GlvKeyDown *key){
         }
         break;
     case SDL_SCANCODE_DELETE:
-        delete(view);
+        if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
+            ctrl_delete(view);
+        }
+        else{
+            delete(view);
+        }
         break;
     case SDL_SCANCODE_V:{
         if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
@@ -655,6 +667,36 @@ static void delete(View *view){
         erse_selected(view);
     }
     else{
+        delete_rng(view, data->carete, 1);
+    }
+}
+
+static void ctrl_backspace(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->selection[1]){
+        erse_selected(view);
+        return;
+    }
+
+    delete_rng(view, data->carete - 1, 1);
+    instant_carete_pos(view, data->carete - 1);
+    while (data->carete > 0 && !is_word_end(data->text[data->carete - 1])){
+        delete_rng(view, data->carete - 1, 1);
+        instant_carete_pos(view, data->carete - 1);
+    }
+}
+
+static void ctrl_delete(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->selection[1]){
+        erse_selected(view);
+        return;
+    }
+
+    delete_rng(view, data->carete, 1);
+    while (data->carete < data->text_len && !is_word_end(data->text[data->carete])){
         delete_rng(view, data->carete, 1);
     }
 }
