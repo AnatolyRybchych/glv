@@ -61,6 +61,8 @@ static void backspace(View *view);
 static void delete(View *view);
 static void k_left(View *view);
 static void k_right(View *view);
+static void ctrl_k_left(View *view);
+static void ctrl_k_right(View *view);
 static void ctrl_v(View *view);
 static void ctrl_c(View *view);
 static void ctrl_x(View *view);
@@ -71,6 +73,8 @@ static void erse_selected(View *view);
 
 static void instant_carete_pos(View *text_input, Uint32 carete_pos);
 static void instant_selection(View *text_input, const Uint32 selection[2]);
+
+static bool is_white_space(char ch);
 
 ViewProc glv_text_input_proc = proc; 
 static Uint32 data_offset;
@@ -325,10 +329,20 @@ static void on_key_down(View  *view, const GlvKeyDown *key){
         backspace(view);
         break;
     case SDL_SCANCODE_LEFT:
-        k_left(view);
+        if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
+            ctrl_k_left(view);
+        }
+        else{
+            k_left(view);
+        }
         break;
     case SDL_SCANCODE_RIGHT:
-        k_right(view);
+        if(SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LCTRL]){
+            ctrl_k_right(view);
+        }
+        else{
+            k_right(view);
+        }
         break;
     case SDL_SCANCODE_DELETE:
         delete(view);
@@ -624,7 +638,9 @@ static void backspace(View *view){
     if(data->selection[1]){
         erse_selected(view);
     }
-    else if(data->carete == 0) return;
+    else if(data->carete == 0){
+        return;
+    }
     else{
         delete_rng(view, data->carete - 1, 1);
         instant_carete_pos(view, data->carete - 1);
@@ -716,6 +732,24 @@ static void k_right(View *view){
         }
         Uint32 selection[2] = {0, 0};
         instant_selection(view, selection);
+    }
+}
+
+static void ctrl_k_left(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    k_left(view);
+    while (data->carete > 0 && !is_white_space(data->text[data->carete - 1])){
+        k_left(view);
+    }
+}
+
+static void ctrl_k_right(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    k_right(view);
+    while (data->carete < data->text_len && !is_white_space(data->text[data->carete])){
+        k_right(view);
     }
 }
 
@@ -838,4 +872,13 @@ static void instant_carete_pos(View *text_input, Uint32 carete_pos){
 static void instant_selection(View *text_input, const Uint32 selection[2]){
     glv_call_event(text_input, VM_TEXT_INPUT_SET_SELECTION, (void*)selection, NULL);
     glv_call_manage(text_input, VM_TEXT_INPUT_SET_SELECTION, (void*)selection);
+}
+
+static bool is_white_space(char ch){
+    return ch == ' '
+        || ch == '\t'
+        || ch == '\n'
+        || ch == '\r'
+        || ch == '\v'
+        || ch == '\f';
 }
