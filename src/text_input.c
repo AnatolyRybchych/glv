@@ -678,6 +678,9 @@ static void ctrl_backspace(View *view){
         erse_selected(view);
         return;
     }
+    if(data->carete == 0){
+        return;
+    }
 
     delete_rng(view, data->carete - 1, 1);
     instant_carete_pos(view, data->carete - 1);
