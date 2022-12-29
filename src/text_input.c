@@ -3,7 +3,7 @@
 #define parent_proc(view, msg, in, out) glv_proc_default(view, msg, in, out)
 
 typedef struct Data{
-    wchar_t *text;
+    wchar_t text[GLV_TEXT_INPUT_TEXT_LEN_MAX];
     Uint32 text_len;
 
     //carete char index
@@ -215,16 +215,12 @@ static void on_init_data_size(View *view, Uint32 *size){
 static void on_create(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
-    data->text = malloc(2);
     data->text[0] = 0;
-
     data->face_size[1] = 48;
 }
 
 static void on_delete(View *view){
-    Data *data = glv_get_view_data(view, data_offset);
-    
-    free(data->text);
+    view = view;//unused
 }
 
 static void on_text(View *view, const char *text){
@@ -316,6 +312,9 @@ static void on_set_carete_pos(View  *view, const Uint32 *carete_pos){
     if(data->text_len < *carete_pos){
         GlvMgr *mgr = glv_get_mgr(view);
         glv_log_err(mgr, "text input: carete is out of range");
+        data->carete = data->text_len;
+        data->carete_pos[0] = calc_text_width(view, data->text, data->carete);
+        data->carete_pos[1] = 0;
         return;
     }
 
@@ -628,17 +627,23 @@ static void paste_text(View *view, const wchar_t *text){
     Data *data = glv_get_view_data(view, data_offset);
 
     Uint32 len_paste = wcslen(text);
+    if(data->text_len + len_paste >= GLV_TEXT_INPUT_TEXT_LEN_MAX ){
+        glv_log_err(glv_get_mgr(view), "text input: text are bigger than " SDL_STRINGIFY_ARG(GLV_TEXT_INPUT_TEXT_LEN_MAX));
+        len_paste = GLV_TEXT_INPUT_TEXT_LEN_MAX -  data->text_len - 1;
+    }
+    printf("%u\n", data->text_len);
+    printf("%u\n", len_paste);
 
-    wchar_t *new_text = malloc(
-        (data->text_len + len_paste + 1) * sizeof(wchar_t));
+    memmove(data->text + data->carete + len_paste, 
+        data->text + data->carete,
+        (data->text_len - data->carete) * sizeof(wchar_t));
+    
+    memcpy(data->text + data->carete, 
+        text, 
+        len_paste * sizeof(wchar_t));
 
-    wcsncpy(new_text, data->text, data->carete);
-    wcsncpy(new_text + data->carete, text, len_paste);
-    wcsncpy(new_text + data->carete + len_paste, data->text + data->carete, data->text_len - data->carete + 1);
-
-    free(data->text);
-    data->text = new_text;
-    data->text_len = data->text_len + len_paste;
+    data->text_len += len_paste;
+    data->text[data->text_len] = 0;
 
     instant_carete_pos(view, data->carete + len_paste);
 
@@ -681,13 +686,14 @@ static void ctrl_backspace(View *view){
     if(data->carete == 0){
         return;
     }
-
-    delete_rng(view, data->carete - 1, 1);
-    instant_carete_pos(view, data->carete - 1);
-    while (data->carete > 0 && !is_word_end(data->text[data->carete - 1])){
-        delete_rng(view, data->carete - 1, 1);
-        instant_carete_pos(view, data->carete - 1);
+    
+    
+    int remove_cnt = 1;
+    while (data->carete - remove_cnt > 0 && !is_word_end(data->text[data->carete - remove_cnt - 1])){
+        remove_cnt++;
     }
+    delete_rng(view, data->carete - remove_cnt, remove_cnt);
+    instant_carete_pos(view, data->carete - remove_cnt);
 }
 
 static void ctrl_delete(View *view){
@@ -702,6 +708,12 @@ static void ctrl_delete(View *view){
     while (data->carete < data->text_len && !is_word_end(data->text[data->carete])){
         delete_rng(view, data->carete, 1);
     }
+
+    int remove_cnt = 1;
+    while (data->carete + remove_cnt < data->text_len && !is_word_end(data->text[data->carete + remove_cnt])){
+        remove_cnt++;
+    }
+    delete_rng(view, data->carete, remove_cnt);
 }
 
 static void k_left(View *view){
@@ -882,14 +894,10 @@ static void delete_rng(View *view, Uint32 from, Uint32 cnt){
 
     Uint32 new_len = data->text_len - cnt;
 
-    wchar_t *new_text = malloc((new_len + 1) * sizeof(wchar_t));
-
-    wcsncpy(new_text, data->text, from);
-    wcsncpy(new_text + from, data->text + from + cnt, data->text_len - from - cnt);
-    new_text[new_len] = 0;
-
-    free(data->text);
-    data->text = new_text;
+    memmove(data->text + from, 
+        data->text + from + cnt,
+        (data->text_len - from - cnt) * sizeof(wchar_t));
+    data->text[new_len] = 0;
     data->text_len = new_len;
 
     glv_push_event(view, VM_TEXT_INPUT_TEXT_CHANGED, NULL, 0);

@@ -37,7 +37,7 @@ typedef struct GlvMgr GlvMgr;
         but after previous deleted, next will automatically displayed
         located on top layer and locks input to general views if exists
     
-    week view:
+    weak view:
         created by glv_create_weak()
         located on layer between regular views and popup views
         doesnt receives most input events

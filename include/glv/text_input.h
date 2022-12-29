@@ -28,6 +28,8 @@
 #define VM_TEXT_INPUT_CLEAR VM_USER_FIRST + 58
 #define VM_TEXT_INPUT_SET_TEXT VM_USER_FIRST + 59
 
+#define GLV_TEXT_INPUT_TEXT_LEN_MAX 256
+
 extern ViewProc glv_text_input_proc; 
 
 void glv_text_input_set_carete_pos(View *text_input, Uint32 carete_pos);
