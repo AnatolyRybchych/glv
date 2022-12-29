@@ -648,8 +648,6 @@ static void paste_text(View *view, const wchar_t *text){
         glv_log_err(glv_get_mgr(view), "text input: text are bigger than " SDL_STRINGIFY_ARG(GLV_TEXT_INPUT_TEXT_LEN_MAX));
         len_paste = GLV_TEXT_INPUT_TEXT_LEN_MAX -  data->text_len - 1;
     }
-    printf("%u\n", data->text_len);
-    printf("%u\n", len_paste);
 
     memmove(data->text + data->carete + len_paste, 
         data->text + data->carete,
