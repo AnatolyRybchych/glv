@@ -9,6 +9,8 @@ typedef struct Data{
     //carete char index
     Uint32 carete;
 
+    int text_pos[2];
+
     //carete postion in pixels reletive to text pos
     int carete_pos[2];
 
@@ -51,6 +53,7 @@ static void on_set_text(View *view, const wchar_t *text);
 static void on_clear(View *view); 
 
 static void resize_texture(View *view);
+static void align_text(View *view);
 static void draw_text(View *view);
 static void draw_bg(View *view);
 static void draw_carete(View *view);
@@ -251,6 +254,7 @@ static void on_draw(View *view){
     SDL_Point size = glv_get_size(view);
     glViewport(0, 0, size.x, size.y);
 
+    align_text(view);
     resize_texture(view);
     draw_bg(view);
     draw_selection(view);
@@ -491,6 +495,20 @@ static void resize_texture(View *view){
     }
 }
 
+static void align_text(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    Uint32 text_width = calc_text_width(view, data->text, data->carete);
+    Uint32 view_width = glv_get_size(view).x;
+
+    if(text_width > view_width){
+        data->text_pos[0] = view_width - text_width;
+    }
+    else{
+        data->text_pos[0] = 0;
+    }
+}
+
 static void draw_text(View *view){
     Data *data = glv_get_view_data(view, data_offset);
     GlvMgr *mgr = glv_get_mgr(view);
@@ -498,8 +516,7 @@ static void draw_text(View *view){
     FT_Face face = glv_get_freetype_face(mgr, data->face_id);
     FT_Set_Pixel_Sizes(face, data->face_size[0], data->face_size[1]);
 
-    int tpos[2] = {0, 0};
-    glv_draw_text(mgr, face, data->text, tpos, glv_get_fg_texture(view));
+    glv_draw_text(mgr, face, data->text, data->text_pos, glv_get_fg_texture(view));
 }
 
 static void draw_bg(View *view){
@@ -527,8 +544,8 @@ static void draw_carete(View *view){
     int *_size = (int*)&size;
 
     int carete_lt_px[2] = {
-        [0] = data->carete_pos[0] - (data->face_size[1] / 32 + 1),
-        [1] = data->carete_pos[1],
+        [0] = data->text_pos[0] + data->carete_pos[0] - (data->face_size[1] / 32 + 1),
+        [1] = data->text_pos[1] + data->carete_pos[1],
     };
 
     int carete_rb_px[2] = {
@@ -575,8 +592,8 @@ static void draw_selection(View *view){
     int *_size = (int*)&size;
 
     int selection_lt_px[2] = {
-        [0] = data->selection_pos,
-        [1] = 0,
+        [0] = data->text_pos[0] + data->selection_pos,
+        [1] = data->text_pos[1],
     };
 
     int selection_rb_px[2] = {
