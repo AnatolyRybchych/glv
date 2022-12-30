@@ -1562,7 +1562,7 @@ static void __set_view_visibility(View *view, bool is_visible){
 }
 
 static void __set_is_mouse_over(View *view, bool is_mouse_over){
-    if(view->is_mouse_over != false) return;
+    if(view->is_mouse_over == is_mouse_over) return;
 
     view->is_mouse_over = is_mouse_over;
     if(is_mouse_over){
