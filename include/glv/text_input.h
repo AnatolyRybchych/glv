@@ -6,9 +6,7 @@
 /*
     TODO: utf-8 to unicode converting
     all characters just mapped as ascii to unicode
-
-    TODO: mouse interraction (selection, moving carete)
-
+    
     TODO: drag & drop for text
 
     maybe

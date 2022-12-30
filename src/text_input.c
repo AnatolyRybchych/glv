@@ -27,6 +27,9 @@ typedef struct Data{
     float selection_color[3];
 
     bool texture_resize_needed;
+
+    bool is_mouse_down;
+    Uint32 carete_on_down;
 } Data;
 
 static void proc(View *view, ViewMsg msg, void *in, void *out);
@@ -51,6 +54,10 @@ static void on_set_face_height(View *view, const Uint32 *face_height);
 static void on_set_face_width(View *view, const Uint32 *face_width); 
 static void on_set_text(View *view, const wchar_t *text); 
 static void on_clear(View *view); 
+static void on_mouse_down(View *view, const GlvMouseDown *e);
+static void on_mouse_up(View *view, const GlvMouseUp *e);
+static void on_mouse_move(View *view, const GlvMouseMove *e);
+static void on_mouse_leave(View *view);
 
 static void resize_texture(View *view);
 static void align_text(View *view);
@@ -59,6 +66,7 @@ static void draw_bg(View *view);
 static void draw_carete(View *view);
 static void draw_selection(View *view);
 static Uint32 calc_text_width(View *view, const wchar_t *text, Uint32 text_len);
+static Uint32 calc_index(View *view, int pos_x);
 static void paste_text(View *view, const wchar_t *text);
 static void backspace(View *view);
 static void delete(View *view);
@@ -145,6 +153,18 @@ static void proc(View *view, ViewMsg msg, void *in, void *out){
     switch (msg){
     case VM_TEXT:
         on_text(view, in);
+        break;
+    case VM_MOUSE_DOWN:
+        on_mouse_down(view, in);
+        break;
+    case VM_MOUSE_UP:
+        on_mouse_up(view, in);
+        break;
+    case VM_MOUSE_MOVE:
+        on_mouse_move(view, in);
+        break;
+    case VM_MOUSE_LEAVE:
+        on_mouse_leave(view);
         break;
     case VM_KEY_DOWN:
         on_key_down(view, in);
@@ -480,6 +500,43 @@ static void on_clear(View *view){
     delete(view);
 }
 
+static void on_mouse_down(View *view, const GlvMouseDown *e){
+    Data *data = glv_get_view_data(view, data_offset);
+    data->is_mouse_down = true;
+
+    data->selection[1] = 0;
+    Uint32 index = calc_index(view, e->x);
+    data->carete_on_down = index;
+    instant_carete_pos(view, index);
+}
+
+static void on_mouse_up(View *view, const GlvMouseUp *e){
+    Data *data = glv_get_view_data(view, data_offset);
+    data->is_mouse_down = false;
+
+    e = e;
+}
+
+static void on_mouse_move(View *view, const GlvMouseMove *e){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    if(data->is_mouse_down){
+        Uint32 index = calc_index(view, e->x);
+        
+        instant_selection(view, (Uint32[2]){
+            SDL_min(data->carete_on_down, index),
+            SDL_max(data->carete_on_down, index) - SDL_min(data->carete_on_down, index)
+            });
+        
+        instant_carete_pos(view, index);
+    }
+}
+
+static void on_mouse_leave(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+    data->is_mouse_down = false;
+}
+
 static void resize_texture(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
@@ -501,8 +558,8 @@ static void align_text(View *view){
     Uint32 text_width = calc_text_width(view, data->text, data->carete);
     Uint32 view_width = glv_get_size(view).x;
 
-    if(text_width > view_width){
-        data->text_pos[0] = view_width - text_width;
+    if(text_width + data->face_size[1] > view_width){
+        data->text_pos[0] = view_width - text_width - data->face_size[1];
     }
     else{
         data->text_pos[0] = 0;
@@ -640,6 +697,34 @@ static Uint32 calc_text_width(View *view, const wchar_t *text, Uint32 text_len){
     return glv_calc_text_width_n(face, text, text_len);
 }
 
+static Uint32 calc_index(View *view, int pos_x){
+    if(pos_x <= 0) return 0;
+
+    Data *data = glv_get_view_data(view, data_offset);
+    GlvMgr *mgr = glv_get_mgr(view);
+
+    FT_Face face = glv_get_freetype_face(mgr, data->face_id);
+    FT_Set_Pixel_Sizes(face, data->face_size[0], data->face_size[1]);
+
+    pos_x -= data->text_pos[0];
+    wchar_t *text_ptr = data->text;
+    while (*text_ptr){
+        FT_Load_Char(face, *text_ptr, FT_LOAD_RENDER);
+        FT_GlyphSlot glyph = face->glyph;
+        pos_x -= glyph->metrics.horiAdvance / 64;
+        if(pos_x <= 0){
+            if(pos_x + glyph->metrics.horiAdvance / 128 <= 0){
+                return text_ptr - data->text;
+            }
+            else{
+                return text_ptr - data->text + 1;
+            }
+        }
+        text_ptr++;
+    }
+    return data->text_len;
+}
+
 static void paste_text(View *view, const wchar_t *text){
     Data *data = glv_get_view_data(view, data_offset);
 
@@ -661,7 +746,6 @@ static void paste_text(View *view, const wchar_t *text){
     data->text[data->text_len] = 0;
 
     instant_carete_pos(view, data->carete + len_paste);
-
     glv_push_event(view, VM_TEXT_INPUT_TEXT_CHANGED, NULL, 0);
 }
 
@@ -916,6 +1000,7 @@ static void delete_rng(View *view, Uint32 from, Uint32 cnt){
     data->text_len = new_len;
 
     glv_push_event(view, VM_TEXT_INPUT_TEXT_CHANGED, NULL, 0);
+    align_text(view);
     glv_draw(view);
 }
 
