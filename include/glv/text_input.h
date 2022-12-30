@@ -3,14 +3,6 @@
 
 #include <glv.h>
 
-/*
-    TODO: utf-8 to unicode converting
-    all characters just mapped as ascii to unicode
-
-    maybe
-    TODO: sord of changing background or border if focused by default
-*/
-
 #define VM_TEXT_INPUT_SET_CARETE_POS VM_USER_FIRST + 50
 #define VM_TEXT_INPUT_SET_SELECTION VM_USER_FIRST + 51
 #define VM_TEXT_INPUT_TEXT_CHANGED VM_USER_FIRST + 52

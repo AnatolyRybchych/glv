@@ -258,12 +258,10 @@ static void on_text(View *view, const char *text){
         erse_selected(view);
     }
 
-    wchar_t ch[] = {
-        *text,
-        0
-    };
+    wchar_t *wtext = (wchar_t*)SDL_iconv_string("WCHAR_T", "UTF-8", text, strlen(text) + 1);
 
-    paste_text(view, ch);
+    paste_text(view, wtext);
+    SDL_free(wtext);
 }
 
 static void on_resize(View *view, const SDL_Point *new_size){
@@ -596,7 +594,7 @@ static void on_sdl(View *view, const SDL_Event *ev){
             }
             wtext[text_len] = 0;
             on_set_text(view, wtext);
-            
+
             free(wtext);
         }
     }
@@ -991,18 +989,12 @@ static void ctrl_v(View *view){
         }
 
         char *text = SDL_GetClipboardText();
+        wchar_t *wtext = (wchar_t*)SDL_iconv_string("WCHAR_T", "UTF-8", text, strlen(text) + 1);
 
-        Uint32 text_len = strlen(text);
-        wchar_t *wtext = malloc((text_len + 1) * sizeof(wchar_t));
-
-        //TODO: utf8 to unicode converting
-        for(Uint32 i = 0; i <= text_len; i++){
-            wtext[i] = text[i];
-        }
+        paste_text(view, wtext);
 
         SDL_free(text);
-        paste_text(view, wtext);
-        free(wtext);
+        SDL_free(wtext);
     }
 }
 
@@ -1010,15 +1002,13 @@ static void ctrl_c(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
     if(data->selection[1]){
-        //TODO: unicode to utf-8 converting
-        char *text = malloc(data->selection[1] + 1);
-        for(Uint32 i = 0; i < data->selection[1]; i++){
-            text[i] = data->text[data->selection[0] + i];
-        }
-        text[data->selection[1]] = 0;
+        char *text = SDL_iconv_string("UTF-8", "WCHAR_T", 
+            (char*)(data->text + data->selection[0]), 
+            (data->selection[1] + 1) * sizeof(wchar_t));
 
         SDL_SetClipboardText(text);
-        free(text);
+
+        SDL_free(text);
     }
     else{
         ctrl_a(view);
