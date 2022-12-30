@@ -521,12 +521,15 @@ static void on_mouse_move(View *view, const GlvMouseMove *e){
     Data *data = glv_get_view_data(view, data_offset);
 
     if(data->is_mouse_down){
+        data->carete_on_down = SDL_min(data->carete_on_down, data->text_len);
+
         Uint32 index = calc_index(view, e->x);
+
+        Uint32 selection[2];
+        selection[0] = SDL_min(data->carete_on_down, index);
+        selection[1] = SDL_max(data->carete_on_down, index) - selection[0];
         
-        instant_selection(view, (Uint32[2]){
-            SDL_min(data->carete_on_down, index),
-            SDL_max(data->carete_on_down, index) - SDL_min(data->carete_on_down, index)
-            });
+        instant_selection(view, selection);
         
         instant_carete_pos(view, index);
     }
