@@ -125,6 +125,7 @@ void glv_enum_hovered_childs(View *view, void(*enum_proc)(View *childs, void *da
 
 void glv_enum_parents(View *view, void(*enum_proc)(View *parent, void *data), void *data){
     if(view == NULL) return;
+    if(view->parent == NULL) return;
     enum_proc(view->parent, data);
     glv_enum_parents(view->parent, enum_proc, data);
 }
@@ -610,7 +611,9 @@ SDL_Point glv_view_to_parent(View *view, SDL_Point point){
 SDL_Point glv_view_to_window(View *view, SDL_Point point){
     SDL_assert(view != NULL);
 
-    glv_enum_parents(view, __enum_point_to_parent, &point);    
+    glv_enum_parents(view, __enum_point_to_parent, &point);
+    point.x += view->x;
+    point.y += view->y;
     return point;
 }
 
@@ -619,6 +622,8 @@ SDL_Point glv_window_to_view(View *view, SDL_Point point){
     SDL_assert(view != NULL);
 
     glv_enum_parents(view, __enum_point_to_child, &point);
+    point.x -= view->x;
+    point.y -= view->y;
     return point; 
 }
 
@@ -1030,6 +1035,14 @@ static void handle_events(GlvMgr *mgr, const SDL_Event *ev){
         }return;
     }
     __enum_call_sdl_redirect_event(receiver, (void*)ev);
+
+    //for event that requires to cleanup
+    switch (ev->type){
+    case SDL_DROPTEXT:
+    case SDL_DROPFILE:
+        SDL_free(ev->drop.file);
+        break;
+    }
 }
 
 static void apply_events(GlvMgr *mgr){
@@ -1104,6 +1117,8 @@ static bool __init_sdl(GlvMgr *mgr){
         return false;
     }
     else{
+        SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+        SDL_EventState(SDL_DROPTEXT, SDL_ENABLE);
         return true;
     }
 }
