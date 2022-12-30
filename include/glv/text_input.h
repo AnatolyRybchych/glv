@@ -6,8 +6,6 @@
 /*
     TODO: utf-8 to unicode converting
     all characters just mapped as ascii to unicode
-    
-    TODO: drag & drop for text
 
     maybe
     TODO: sord of changing background or border if focused by default

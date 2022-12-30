@@ -59,6 +59,7 @@ static void on_mouse_down(View *view, const GlvMouseDown *e);
 static void on_mouse_up(View *view, const GlvMouseUp *e);
 static void on_mouse_move(View *view, const GlvMouseMove *e);
 static void on_mouse_leave(View *view);
+static void on_sdl(View *view, const SDL_Event *ev);
 
 static void resize_texture(View *view);
 static void align_text(View *view);
@@ -152,6 +153,9 @@ void glv_text_input_set_text(View *text_input, const wchar_t *text){
 
 static void proc(View *view, ViewMsg msg, void *in, void *out){
     switch (msg){
+    case VM_SDL_REDIRECT:
+        on_sdl(view, in);
+        break;
     case VM_TEXT:
         on_text(view, in);
         break;
@@ -569,6 +573,33 @@ static void on_mouse_move(View *view, const GlvMouseMove *e){
 static void on_mouse_leave(View *view){
     Data *data = glv_get_view_data(view, data_offset);
     data->is_mouse_down = false;
+}
+
+static void on_sdl(View *view, const SDL_Event *ev){
+    if(ev->type == SDL_DROPTEXT
+    || ev->type == SDL_DROPFILE){
+        const SDL_DropEvent *drop = &ev->drop;
+
+        SDL_Point size = glv_get_size(view);
+        SDL_Point mouse_pos;
+        SDL_GetGlobalMouseState(&mouse_pos.x, &mouse_pos.y);
+        mouse_pos = glv_desktop_to_window(glv_get_mgr(view), glv_window_to_view(view, mouse_pos));
+
+        if(mouse_pos.x >= 0
+        && mouse_pos.y >= 0
+        && mouse_pos.x < size.x
+        && mouse_pos.y < size.y){
+            Uint32 text_len = strlen(drop->file);
+            wchar_t *wtext = malloc((text_len + 1) * sizeof(wchar_t));
+            for (Uint32 i = 0; i < text_len; i++){
+                wtext[i] = drop->file[i];
+            }
+            wtext[text_len] = 0;
+            on_set_text(view, wtext);
+            
+            free(wtext);
+        }
+    }
 }
 
 static void resize_texture(View *view){
