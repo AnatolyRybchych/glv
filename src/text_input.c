@@ -30,6 +30,7 @@ typedef struct Data{
 
     bool is_mouse_down;
     Uint32 carete_on_down;
+    Uint32 last_mouse_down;
 } Data;
 
 static void proc(View *view, ViewMsg msg, void *in, void *out);
@@ -502,12 +503,42 @@ static void on_clear(View *view){
 
 static void on_mouse_down(View *view, const GlvMouseDown *e){
     Data *data = glv_get_view_data(view, data_offset);
+
     data->is_mouse_down = true;
 
-    data->selection[1] = 0;
+    Uint32 time = SDL_GetTicks();
     Uint32 index = calc_index(view, e->x);
+
+    
     data->carete_on_down = index;
-    instant_carete_pos(view, index);
+
+    if(data->last_mouse_down + 500 > time && data->selection[1] == 0){
+
+        Uint32 selection[2] = {index, 0};
+        while (selection[0] > 0){
+            if(!is_word_end(data->text[selection[0]])){
+                selection[0]--;
+            }
+            else{
+                selection[0]++;
+                break;
+            }
+        }
+        selection[1] += index - selection[0];
+
+        while (selection[0] + selection[1] < data->text_len 
+        && !is_word_end(data->text[selection[0] + selection[1]])){
+            selection[1]++;
+        }
+        
+        instant_selection(view, selection);
+    }
+    else{
+        instant_selection(view, (Uint32[2]){0, 0});
+        instant_carete_pos(view, index);
+    }
+
+    data->last_mouse_down = time;
 }
 
 static void on_mouse_up(View *view, const GlvMouseUp *e){
