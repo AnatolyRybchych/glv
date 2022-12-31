@@ -8,7 +8,6 @@
 #define VM_TEXT_VIEW_GET_TEXT VM_USER_FIRST + 2
 #define VM_TEXT_VIEW_GET_TEXT_PARAMS VM_USER_FIRST + 3
 #define VM_TEXT_VIEW_SET_TEXTALIGN VM_USER_FIRST + 4
-#define VM_TEXT_VIEW_NORMALIZE VM_USER_FIRST + 5
 #define VM_TEXT_VIEW_GET_TEXT_POS VM_USER_FIRST + 6
 
 //if background is 0, background is complitely transparent

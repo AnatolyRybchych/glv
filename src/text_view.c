@@ -28,7 +28,6 @@ static void get_text_params(View *text_view, GlvTextViewTextParams *params);
 static void get_docs(View *text_view, const ViewMsg *msg, GlvMsgDocs *docs);
 static void apply_align(View *text_view, SDL_Point align);
 static void resize(View *text_view, const SDL_Point *new_size);
-static void normalize(View *text_view, bool move);
 static void render(View *text_view);
 static Uint32 calc_text_width(View *text_view, const wchar_t *text);
 static SDL_Point get_text_pos(View *text_view);
@@ -93,9 +92,6 @@ static void view_proc(View *view, ViewMsg msg, void *in, void *out){
         apply_align(view, *(SDL_Point*)in);
         glv_draw(view);
     } break;
-    case VM_TEXT_VIEW_NORMALIZE:{
-        normalize(view, *(bool*)in);
-    } break;
     case VM_TEXT_VIEW_GET_TEXT:
         get_text(view, out);
     break;
@@ -154,7 +150,19 @@ void glv_text_view_set_alignment(View *text_view, int x, int y){
 void glv_text_view_normalize(View *text_view, bool move){
     SDL_assert(text_view != NULL);
 
-    glv_push_event(text_view, VM_TEXT_VIEW_NORMALIZE, &move, sizeof(move));
+    SDL_Point curr_pos = glv_get_pos(text_view);
+    Data *data = glv_get_view_data(text_view, data_offset);
+
+    SDL_Point text_pos = get_text_pos(text_view);
+
+    FT_Face face = glv_get_freetype_face(glv_get_mgr(text_view), data->face);
+    FT_Set_Pixel_Sizes(face, data->face_width, data->face_height);
+    FT_Load_Char(face, L'\0', FT_LOAD_RENDER);
+
+    glv_set_size(text_view, data->text_width, face->glyph->metrics.vertAdvance / 64);
+    if(move == false) return;
+
+    glv_set_pos(text_view, curr_pos.x + text_pos.x, curr_pos.y + text_pos.y);    
 }
 
 SDL_Point glv_text_view_get_text_pos(View *text_view){
@@ -260,10 +268,6 @@ static void get_docs(View *text_view, const ViewMsg *msg, GlvMsgDocs *docs){
             "const SDL_Point *alignment", "NULL", "set text alignment: x -> horisonta,"
             " y -> vertical; if < 0 -> alignment begin, == 0 -> alignment center, > 0 -> alignment end");
         break;
-    case VM_TEXT_VIEW_NORMALIZE:
-        glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_NORMALIZE),
-            "const bool *move", "NULL", "set view size equals text size if *move != false moves this view to save text absolute location");
-        break;
     case VM_TEXT_VIEW_GET_TEXT_POS:
         glv_write_docs(docs, *msg, SDL_STRINGIFY_ARG(VM_TEXT_VIEW_GET_TEXT_POS),
             "NULL", "SDL_Point *pos", "returns text location on text view");
@@ -287,23 +291,6 @@ static void resize(View *text_view, const SDL_Point *new_size){
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, new_size->x, new_size->y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-static void normalize(View *text_view, bool move){
-    SDL_Point curr_pos = glv_get_pos(text_view);
-
-    Data *data = glv_get_view_data(text_view, data_offset);
-
-    SDL_Point text_pos = get_text_pos(text_view);
-
-    FT_Face face = glv_get_freetype_face(glv_get_mgr(text_view), data->face);
-    FT_Set_Pixel_Sizes(face, data->face_width, data->face_height);
-    FT_Load_Char(face, L'\0', FT_LOAD_RENDER);
-
-    glv_set_size(text_view, data->text_width, face->glyph->metrics.vertAdvance / 64);
-    if(move == false) return;
-
-    glv_set_pos(text_view, curr_pos.x + text_pos.x, curr_pos.y + text_pos.y);
 }
 
 static void render(View *text_view){
