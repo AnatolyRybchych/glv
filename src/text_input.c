@@ -519,10 +519,7 @@ static void on_mouse_down(View *view, const GlvMouseDown *e){
     Uint32 time = SDL_GetTicks();
     Uint32 index = calc_index(view, e->x);
 
-    
-    data->carete_on_down = index;
-
-    if(data->last_mouse_down + 500 > time && data->selection[1] == 0){
+    if(data->last_mouse_down + 500 > time && data->selection[1] == 0 && index == data->carete_on_down){
 
         Uint32 selection[2] = {index, 0};
         while (selection[0] > 0){
@@ -548,6 +545,8 @@ static void on_mouse_down(View *view, const GlvMouseDown *e){
         instant_carete_pos(view, index);
     }
 
+
+    data->carete_on_down = index;
     data->last_mouse_down = time;
 }
 
