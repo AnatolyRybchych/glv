@@ -719,7 +719,7 @@ static void __init_glyph_vbo(float vbo[12], const FT_GlyphSlot glyph, const int 
         .x = (pos[0] + glyph->metrics.horiBearingX / 64) 
                 / (float)viewport[2] * 2.0 - 1.0, 
                                         /*glyph->face->ascender is offset of baseline from previous advance end*/
-        .y = (viewport[3] - (pos[1] + (glyph->metrics.vertAdvance - glyph->face->ascender + glyph->metrics.height - glyph->metrics.horiBearingY) / 64))  
+        .y = (viewport[3] - (pos[1] + (int)glyph->bitmap.rows - glyph->bitmap_top + glyph->face->bbox.yMin / 64) - 48)  
                 / (float)viewport[3] * 2.0 - 1.0,
         
         .w = glyph->bitmap.width * 2

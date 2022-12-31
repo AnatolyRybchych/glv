@@ -40,14 +40,17 @@ void init_spa(View *view, void *root_context){
     
     GlvMgr *mgr = glv_get_mgr(view);
     glv_new_freetype_face(mgr, "NotoMono-Regular.ttf", 0);
+    glv_new_freetype_face(mgr, "Sarai.ttf", 0);
+    glv_new_freetype_face(mgr, "Gargi.ttf", 0);
 
     glv_stack_panel_set_vertical(view);
     glv_stack_panel_set_alignment(view, 0, 0);
     glv_set_background(view, glv_gen_texture_solid_color(0x00, 0x80, 0xcc, 255));
 
     View *text = glv_create(view, glv_text_view_proc, NULL, NULL);
-    glv_text_view_set_text(text, L"text");
-    //glv_set_background(text, glv_gen_texture_solid_color(0x00, 0x57, 0xb7, 255));
+    glv_text_view_set_text(text, L"textgFt");
+    glv_set_font_height(text, 48);
+    glv_set_background(text, glv_gen_texture_solid_color(0xff, 0x57, 0xb7, 255));
     glv_set_foreground(text, glv_gen_texture_solid_color(0xff, 0xd7, 00, 255));
     glv_text_view_normalize(text, false);
 
