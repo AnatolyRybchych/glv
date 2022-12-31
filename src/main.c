@@ -62,7 +62,6 @@ void init_spa(View *view, void *root_context){
     glv_text_input_set_carete_color(text_input, 0xff /(float) 0xff, 0xd7 /(float) 0xff, 0x00 /(float) 0xff);
     glv_text_input_set_selection_color(text_input, 0x00 / 350.0, 0x57 / 350.0, 0xb7 / 350.0);
     glv_set_font_height(text_input, 48);
-    glv_set_size(text_input, 200, 48);
 
     // View *canvas = glv_create_weak(mgr, glv_canvas_proc, manage_canvas, NULL);
     // canvas = canvas;

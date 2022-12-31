@@ -61,6 +61,8 @@ static void on_mouse_move(View *view, const GlvMouseMove *e);
 static void on_mouse_leave(View *view);
 static void on_sdl(View *view, const SDL_Event *ev);
 
+static void normalize_height(View *view);
+
 static void resize_texture(View *view);
 static void align_text(View *view);
 static void draw_text(View *view);
@@ -270,6 +272,8 @@ static void on_resize(View *view, const SDL_Point *new_size){
     Data *data = glv_get_view_data(view, data_offset);
     data->texture_resize_needed = true;
 
+    normalize_height(view);
+
     glv_draw(view);
 }
 
@@ -473,15 +477,19 @@ static void on_set_selection_color(View  *view, const float color[3]){
 
 static void on_set_face(View *view, const GlvFontFaceId *face){
     Data *data = glv_get_view_data(view, data_offset);
+    data->face_id = *face;    
 
-    data->face_id = *face;
+    normalize_height(view);
+
     glv_draw(view);
 }
 
 static void on_set_face_height(View *view, const Uint32 *face_height){
     Data *data = glv_get_view_data(view, data_offset);
-
     data->face_size[1] = *face_height;
+    
+    normalize_height(view);
+
     glv_draw(view);
 }
 
@@ -600,6 +608,17 @@ static void on_sdl(View *view, const SDL_Event *ev){
     }
 }
 
+static void normalize_height(View *view){
+    Data *data = glv_get_view_data(view, data_offset);
+
+    FT_Face face = glv_get_freetype_face(glv_get_mgr(view), data->face_id);
+    FT_Set_Pixel_Sizes(face, data->face_size[0], data->face_size[1]);
+    FT_Load_Char(face, L'\0', FT_LOAD_RENDER);
+
+    SDL_Point size = glv_get_size(view);
+    glv_set_size(view, size.x, face->glyph->metrics.vertAdvance / 64);
+}
+
 static void resize_texture(View *view){
     Data *data = glv_get_view_data(view, data_offset);
 
@@ -664,13 +683,13 @@ static void draw_carete(View *view){
     int *_size = (int*)&size;
 
     int carete_lt_px[2] = {
-        [0] = data->text_pos[0] + data->carete_pos[0] - (data->face_size[1] / 32 + 1),
+        [0] = data->text_pos[0] + data->carete_pos[0] - (size.y / 32 + 1),
         [1] = data->text_pos[1] + data->carete_pos[1],
     };
 
     int carete_rb_px[2] = {
-        [0] = carete_lt_px[0] + (data->face_size[1] / 16 + 1),
-        [1] = carete_lt_px[1] + data->face_size[1],
+        [0] = carete_lt_px[0] + (size.y / 16 + 1),
+        [1] = carete_lt_px[1] + size.y,
     };
 
     float carete_lt[2];
@@ -718,7 +737,7 @@ static void draw_selection(View *view){
 
     int selection_rb_px[2] = {
         [0] = selection_lt_px[0] + data->selection_size,
-        [1] = selection_lt_px[1] + data->face_size[1],
+        [1] = selection_lt_px[1] + size.y,
     };
 
     float selection_lt[2];
