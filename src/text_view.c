@@ -296,7 +296,11 @@ static void normalize(View *text_view, bool move){
 
     SDL_Point text_pos = get_text_pos(text_view);
 
-    glv_set_size(text_view, data->text_width, data->face_height);
+    FT_Face face = glv_get_freetype_face(glv_get_mgr(text_view), data->face);
+    FT_Set_Pixel_Sizes(face, data->face_width, data->face_height);
+    FT_Load_Char(face, L'\0', FT_LOAD_RENDER);
+
+    glv_set_size(text_view, data->text_width, face->glyph->metrics.vertAdvance / 64);
     if(move == false) return;
 
     glv_set_pos(text_view, curr_pos.x + text_pos.x, curr_pos.y + text_pos.y);
