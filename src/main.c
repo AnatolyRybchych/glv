@@ -15,21 +15,15 @@ void manage_canvas(View *view, ViewMsg msg, void *args, void *root_context){
     args = args;
     root_context = root_context;
     switch (msg){
-    case VM_DRAW:{
+    case VM_DRAW:{        
         GlvMgr *mgr = glv_get_mgr(view);
-
-        float mat[16];
-        mvp_identity(mat);
-
-        mvp_rotate_z(mat, 1.0);
-        mvp_scale(mat, (float[3]){1.0, 0.01, 1.0});
-
-        glv_draw_line_abs(mgr, 
-            (int[2]){100, 100}, 
-            (int[2]){200, 500}, 
-            (float[4]){1.0, 0.0, 0.0, 1.0},
-            (float[4]){1.0, 1.0, 0.0, 1.0},
-            10, 0.5);
+        glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
+        glEnable(GL_POLYGON_SMOOTH);
+        glv_draw_triangles_rel(mgr, 3,
+            (float[6]){-0.6, -0.8, 0.6, -0.2, -0.3, 0.8}, 2,
+            (float[12]){1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0}, 4);
+        glDisable(GL_POLYGON_SMOOTH);
+        glv_restore_gl_blendfunc();
     }break;
     }
 }

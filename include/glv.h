@@ -3,6 +3,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
+#include <SDL2/SDL_opengl.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <stdbool.h>
@@ -118,6 +119,8 @@ GlvMgr *glv_get_mgr(View *view);
 
     //returns sdl window for this mgr
     SDL_Window *glv_get_window(GlvMgr *mgr);
+
+    SDL_Renderer *glv_get_sdlrenerer(GlvMgr *mgr);
 
     //returns -1 if error
     //all font resources are managed by mgr 

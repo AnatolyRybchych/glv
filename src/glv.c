@@ -956,6 +956,10 @@ static int delete_mgr(GlvMgr *mgr){
     free_draw_text(&mgr->draw_text_program);
     free_draw_line(&mgr->draw_line_program);
 
+    if(mgr->renderer){
+        SDL_DestroyRenderer(mgr->renderer);
+    }
+    
     SDL_DestroyWindow(mgr->window);
     SDL_GL_DeleteContext(mgr);
     return mgr->return_code;
@@ -1128,10 +1132,16 @@ static bool __init_window(GlvMgr *mgr){
         SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL);
     if(mgr->window == NULL){
         glv_log_err(mgr, "cannot create SDL2_Window");
+            glv_log_err(mgr, SDL_GetError());
         return false;
     }
     else{
         mgr->wind_id = SDL_GetWindowID(mgr->window);
+        mgr->renderer = SDL_CreateRenderer(mgr->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+        if(mgr->renderer == NULL){
+            glv_log_err(mgr, "cannot create SDL_Renderer");
+            glv_log_err(mgr, SDL_GetError());
+        }
     }
     return true;
 }

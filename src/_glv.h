@@ -124,6 +124,7 @@ struct GlvMgr{
     bool is_running;
     int return_code;
 
+    SDL_Renderer *renderer;
     SDL_GLContext *gl_rc;
     SDL_Window *window;
     Uint32 wind_id;

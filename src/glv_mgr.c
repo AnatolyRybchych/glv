@@ -622,6 +622,12 @@ SDL_Window *glv_get_window(GlvMgr *mgr){
     return mgr->window;
 }
 
+SDL_Renderer *glv_get_sdlrenerer(GlvMgr *mgr){
+    SDL_assert(mgr != NULL);
+
+    return mgr->renderer;
+}
+
 GlvFontFaceId glv_new_freetype_face(GlvMgr *mgr, const char *filepath, FT_Long face_index){
     SDL_assert(mgr != NULL);
     SDL_assert(filepath != NULL);
