@@ -1,8 +1,9 @@
 
-INCLUDE		:= -I/usr/include/freetype2/
-CARGS		:= $(INCLUDE) -ggdb -Iinclude -Wall -Wextra -Werror -pedantic
+CFLAGS		:= -fPIC -Iinclude $(shell pkg-config --cflags freetype2 sdl2) -Wall -Wextra -Werror -pedantic
+LIBS		:= $(shell pkg-config --libs freetype2 gl freetype2 sdl2) -lm
 
-objects		+= main.o
+GLV_DDL		:= lib/libglv.so
+
 objects		+= glv.o
 objects		+= mvp.o
 objects		+= vec.o
@@ -10,8 +11,6 @@ objects		+= line.o
 objects		+= coords.o
 objects		+= builtin_shaders.o
 objects		+= glv_mgr.o
-
-#standard views 
 objects		+= text_view.o
 objects		+= text_input.o
 objects		+= stack_panel.o
@@ -21,15 +20,22 @@ objects		+= menu_panel.o
 objects		+= popup_panel.o
 objects		+= background.o
 
-build:$(addprefix obj/, $(objects))
-	gcc $(CARGS) -o run $^ -lGL -lSDL2 -lm -lfreetype
+build_dll: $(addprefix obj/, $(objects))
+	gcc -shared -o $(GLV_DDL) $(CFLAGS) $^ $(LIBS)
+
+#sudo required
+install_linux: build_dll
+	ln -sf /usr/include/freetype2/* ./include
+	cp -r ./include/* /usr/include/
+	cp -r ./lib/* /usr/lib/
+
+#sudo required
+uninstall_linux:
+	rm  /usr/include/glv.h
+	rm -r /usr/include/glv/*
+	rm /usr/lib/libglv.so
+
 
 obj/%.o:src/%.c
 	@mkdir -p ./obj
-	gcc -c $(CARGS) -o $@ $^
-
-run: build
-	./run
-
-gdb: build
-	gdb ./run
+	gcc -c $(CFLAGS) -o $@ $^
