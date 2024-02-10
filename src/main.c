@@ -6,6 +6,8 @@ typedef struct{
 } AppContext;
 
 void app_manage(View *view, ViewMsg msg, void *ev, void *app_context){
+    (void)ev;
+    (void)view;
     AppContext *ctx = app_context;
 
     switch (msg){
